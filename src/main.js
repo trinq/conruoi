@@ -1,37 +1,18 @@
-import Phaser from 'phaser';
-import '@fontsource/vt323';
-import { BootScene } from './scenes/BootScene.js';
-import { MenuScene } from './scenes/MenuScene.js';
-import { GameScene } from './scenes/GameScene.js';
-import { LevelCompleteScene } from './scenes/LevelCompleteScene.js';
-import { GameOverScene } from './scenes/GameOverScene.js';
+import '@fontsource/baloo-2/500.css';
+import '@fontsource/baloo-2/700.css';
+import '@fontsource/baloo-2/800.css';
+import './ui/style.css';
+import { App } from './App.js';
 
-export const GAME_WIDTH = 960;
-export const GAME_HEIGHT = 540;
-
-const config = {
-  type: Phaser.AUTO, // WebGL with Canvas fallback
-  parent: 'game',
-  width: GAME_WIDTH,
-  height: GAME_HEIGHT,
-  backgroundColor: '#1d1410',
-  pixelArt: true,
-  // Scale the 960x540 canvas to fit the window, keeping its aspect ratio.
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [BootScene, MenuScene, GameScene, LevelCompleteScene, GameOverScene],
-};
-
-// Canvas text needs the font loaded before it is first drawn. Loading a
-// Vietnamese sample pulls in the vietnamese unicode-range subset too.
-document.fonts
-  .load('28px VT323', 'Con Ruồi ăn phở')
+// Signs and labels are drawn into canvas textures, so the font must be ready
+// before the scene is built. The Vietnamese sample pulls in that subset too.
+Promise.all([
+  document.fonts.load('800 64px "Baloo 2"', 'Quán Phở Bác Ba ồ'),
+  document.fonts.load('700 22px "Baloo 2"', 'Điểm ồ'),
+])
   .catch(() => {})
   .then(() => {
-    const game = new Phaser.Game(config);
+    const app = new App();
     // Handy for debugging and browser-driven checks during development.
-    if (import.meta.env.DEV) window.__game = game;
-    // M toggles sound anywhere in the game.
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyM' && !e.repeat) game.sound.mute = !game.sound.mute;
-    });
+    if (import.meta.env.DEV) window.__app = app;
   });

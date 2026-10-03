@@ -1,60 +1,65 @@
 // Sanity checks for src/levels.js: layout geometry and difficulty curve.
 import { LEVELS } from '../src/levels.js';
-import { FOOD_TYPES } from '../src/food/foodTypes.js';
+import { FOOD_TYPES } from '../src/game/foodTypes.js';
+import { PAVING as AREA } from '../src/world/area.js';
 
-const WIDTH = 960;
-const HEIGHT = 540;
-const HUD_BOTTOM = 80; // keep tall things below the HUD row
-const NPC_HEIGHT = 72;
-const FOOD_MARGIN = 0.75; // dishes stay well inside the footprint (0..1)
+const FOOD_MARGIN = 0.3; // dishes keep this far from a table edge (m)
+const NPC_GAP = 0.25; // a diner's stool must be at least this far from any table
+const NPC_MAX_GAP = 1.2; // ...and no further than this from the table they face
+const MIN_FOOD_SPACING = 0.55; // dishes on a table must not overlap
 
 const errors = [];
 const fail = (level, msg) => errors.push(`Level ${level + 1}: ${msg}`);
 
-const footprint = (t, x, y) => Math.abs(x - t.x) / t.halfWidth + Math.abs(y - t.y) / (t.halfWidth / 2);
-const inside = (t, x, y, limit = 1) => footprint(t, x, y) <= limit;
+const distToTable = (t, x, z) => {
+  const dx = Math.max(Math.abs(x - t.x) - t.w / 2, 0);
+  const dz = Math.max(Math.abs(z - t.z) - t.d / 2, 0);
+  return Math.hypot(dx, dz);
+};
+const inArea = (x, z, pad = 0) => x >= AREA.minX + pad && x <= AREA.maxX - pad && z >= AREA.minZ + pad && z <= AREA.maxZ - pad;
 
 LEVELS.forEach((level, li) => {
   const { tables, npcs, danger } = level;
-  for (const key of ['name', 'targetScore', 'flyStart', 'tables', 'npcs', 'danger']) {
+  for (const key of ['name', 'theme', 'targetScore', 'flyStart', 'tables', 'npcs', 'danger']) {
     if (level[key] === undefined) fail(li, `missing ${key}`);
   }
 
   tables.forEach((t, ti) => {
-    const hd = t.halfWidth / 2;
-    if (t.x - t.halfWidth < 0 || t.x + t.halfWidth > WIDTH || t.y + hd > HEIGHT || t.y - hd - 28 < HUD_BOTTOM) {
-      fail(li, `table ${ti} is off screen or under the HUD`);
+    if (!inArea(t.x - t.w / 2, t.z - t.d / 2, 0.3) || !inArea(t.x + t.w / 2, t.z + t.d / 2, 0.3)) {
+      fail(li, `table ${ti} sticks out of the play area`);
     }
+    const spots = [];
     t.foods.forEach((f, fi) => {
       if (!FOOD_TYPES[f.type]) fail(li, `table ${ti} food ${fi}: unknown type ${f.type}`);
-      if (!inside(t, t.x + f.dx, t.y + f.dy, FOOD_MARGIN)) fail(li, `table ${ti} food ${fi} is too close to the edge`);
+      if (Math.abs(f.dx) > t.w / 2 - FOOD_MARGIN || Math.abs(f.dz) > t.d / 2 - FOOD_MARGIN) {
+        fail(li, `table ${ti} food ${fi} is too close to the edge`);
+      }
+      for (const s of spots) {
+        if (Math.hypot(s.dx - f.dx, s.dz - f.dz) < MIN_FOOD_SPACING) fail(li, `table ${ti} food ${fi} overlaps another dish`);
+      }
+      spots.push(f);
     });
-    // Tables must not overlap: sample this footprint against the others.
     tables.forEach((o, oi) => {
       if (oi <= ti) return;
-      for (let sx = -1; sx <= 1; sx += 0.1) {
-        for (let sy = -1; sy <= 1; sy += 0.1) {
-          const x = t.x + sx * t.halfWidth;
-          const y = t.y + sy * hd;
-          if (inside(t, x, y) && inside(o, x, y)) {
-            fail(li, `tables ${ti} and ${oi} overlap`);
-            return;
-          }
-        }
-      }
+      const gapX = Math.abs(t.x - o.x) - (t.w + o.w) / 2;
+      const gapZ = Math.abs(t.z - o.z) - (t.d + o.d) / 2;
+      if (gapX < 0.8 && gapZ < 0.8) fail(li, `tables ${ti} and ${oi} are too close to fly between`);
     });
   });
 
   npcs.forEach((n, ni) => {
-    if (tables.some((t) => inside(t, n.x, n.y))) fail(li, `npc ${ni} stands inside a table`);
-    if (n.y - NPC_HEIGHT < HUD_BOTTOM - 30) fail(li, `npc ${ni} pokes into the HUD`);
-    const foods = tables.flatMap((t) => t.foods.map((f) => ({ x: t.x + f.dx, y: t.y + f.dy })));
-    if (!foods.some((f) => Math.hypot(f.x - n.x, f.y - n.y) <= danger.reach)) {
-      fail(li, `npc ${ni} cannot reach any food`);
-    }
+    const gaps = tables.map((t) => distToTable(t, n.x, n.z));
+    const nearest = Math.min(...gaps);
+    if (nearest < NPC_GAP) fail(li, `npc ${ni} sits inside or on a table`);
+    if (nearest > NPC_MAX_GAP) fail(li, `npc ${ni} is too far from any table`);
+    if (!inArea(n.x, n.z)) fail(li, `npc ${ni} is outside the play area`);
+    const foods = tables.flatMap((t) => t.foods.map((f) => ({ x: t.x + f.dx, z: t.z + f.dz })));
+    if (!foods.some((f) => Math.hypot(f.x - n.x, f.z - n.z) <= danger.reach)) fail(li, `npc ${ni} cannot reach any food`);
   });
 
-  if (tables.some((t) => inside(t, level.flyStart.x, level.flyStart.y))) fail(li, 'fly starts inside a table');
+  const { x, z } = level.flyStart;
+  if (!inArea(x, z, 0.4)) fail(li, 'fly starts outside the play area');
+  if (tables.some((t) => distToTable(t, x, z) < 0.5)) fail(li, 'fly starts on or next to a table');
   if (danger.maxSlaps > npcs.length) fail(li, 'maxSlaps exceeds the number of npcs');
 
   const prev = LEVELS[li - 1];
