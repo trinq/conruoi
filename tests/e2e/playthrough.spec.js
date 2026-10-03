@@ -176,14 +176,35 @@ for (const weapon of ['hand', 'fan']) {
       );
     const idle = () => page.evaluate((weapon) => window.__app.round.npcs.find((n) => n.weapon === weapon).state === 'idle', weapon);
 
+    // Game time advances at most 50 ms per frame, and software WebGL on CI
+    // draws only a few frames a second, so a strike can take a while.
+    const slow = { timeout: 45_000 };
     expect(await strike(true)).toBe(true);
     await expect.poll(idle).toBe(false);
-    await expect.poll(idle, { timeout: 10_000 }).toBe(true);
+    await expect.poll(idle, slow).toBe(true);
     expect(await fullHearts(page)).toBe(3);
 
     expect(await strike(false)).toBe(true);
-    await expect.poll(() => fullHearts(page), { timeout: 10_000 }).toBe(2);
+    await expect.poll(() => fullHearts(page), slow).toBe(2);
     await expect(page.locator('.popup.hit')).toHaveText(new RegExp(COPY.hit.join('|')));
     await expectNoErrors(errors);
   });
 }
+
+test('level 3 is Hội An with chè as a bonus and a nan fan among the diners', async ({ page }) => {
+  const errors = await openGame(page);
+  await goToLevel(page, 2);
+  await expect(hud(page)).toContainText(levelName(2));
+  const { served, weapons } = await page.evaluate(() => {
+    const r = window.__app.round;
+    return { served: [...new Set(r.foods.map((f) => f.info.name))].sort(), weapons: r.npcs.map((n) => n.weapon) };
+  });
+  const expected = [...Object.values(REGIONS.hoian.dishes), 'che'].map((id) => DISHES[id].name).sort();
+  expect(served).toEqual(expected);
+  expect(weapons).toContain('fan');
+  const dish = await clickDish(page, 'bonus');
+  expect(dish.name).toBe(DISHES.che.name);
+  await expect(page.locator('.popup')).toContainText(dish.name, { timeout: 15_000 });
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[2].targetScore}`);
+  await expectNoErrors(errors);
+});

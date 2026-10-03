@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Hội An scene with yellow walls, bougainvillea and glowing lanterns at sunset
-- [ ] Cao lầu, mì Quảng, bánh mì, chè models with empty states; chè bobs as a bonus
-- [ ] Level 3 uses them with hands and nan fans; level check passes
+- [x] Hội An scene with yellow walls, bougainvillea and glowing lanterns at sunset
+- [x] Cao lầu, mì Quảng, bánh mì, chè models with empty states; chè bobs as a bonus
+- [x] Level 3 uses them with hands and nan fans; level check passes

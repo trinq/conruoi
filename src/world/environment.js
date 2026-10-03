@@ -3,6 +3,7 @@ import { rng, range, mat, mesh } from './lowpoly.js';
 import { tree, pine, bush, rock, crate, barrel, stall, pond, lantern } from './models.js';
 import { buildHanoi } from './scenes/hanoi.js';
 import { buildHue } from './scenes/hue.js';
+import { buildHoian } from './scenes/hoian.js';
 
 import { PAVING } from './area.js';
 
@@ -270,7 +271,7 @@ function buildMeadow() {
   };
 }
 
-const SCENES = { hanoi: buildHanoi, hue: buildHue };
+const SCENES = { hanoi: buildHanoi, hue: buildHue, hoian: buildHoian };
 
 // Owns the scenery for every region. Each region's scene is built the first
 // time it is needed and kept, so switching levels back and forth is cheap.
@@ -288,6 +289,7 @@ export function buildEnvironment(scene) {
       for (const [k, s] of built) s.root.visible = k === key;
       active = built.get(key);
       active.setNight?.(timeOfDay === 'night');
+      active.show?.();
     },
     update(timeMs, dt) {
       active?.update(timeMs, dt);

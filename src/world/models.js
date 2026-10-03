@@ -591,6 +591,104 @@ function banhBeo(rand) {
   return g;
 }
 
+// Cao lầu: thick amber noodles in a little dark sauce, slices of xá xíu,
+// square crackers stood up in the bowl and fresh greens.
+function caoLau(rand) {
+  const g = bowlShell('#5a3a22');
+  const contents = new THREE.Group();
+  soup(contents, '#8a5a2e', 0.25, 0.13);
+  bits(rand, contents, 10, lyingNoodle(0.2, 0.02), '#dcaa58', 0.15, 0.13);
+  bits(rand, contents, 4, () => new THREE.BoxGeometry(0.13, 0.02, 0.08), '#b3503e', 0.175, 0.12);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.4;
+    const cracker = mesh(new THREE.BoxGeometry(0.09, 0.012, 0.09), mat('#e8c070'), { cast: false });
+    cracker.position.set(Math.cos(a) * 0.15, 0.21, Math.sin(a) * 0.15);
+    cracker.rotation.set(0.9, -a, 0, 'YXZ');
+    contents.add(cracker);
+  }
+  bits(rand, contents, 6, () => new THREE.IcosahedronGeometry(0.045, 0), '#5cae3a', 0.19, 0.12);
+  bits(rand, contents, 6, lyingNoodle(0.07, 0.008), '#f4f1e0', 0.19, 0.14);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Mì Quảng: wide turmeric noodles in a shallow broth with shrimp, pork,
+// quail eggs, peanuts and herbs, and a sesame rice cracker on the rim.
+function miQuang(rand) {
+  const g = bowlShell('#2e8b57');
+  const contents = new THREE.Group();
+  soup(contents, '#e2a03a', 0.26, 0.14);
+  bits(rand, contents, 8, () => new THREE.BoxGeometry(0.2, 0.008, 0.045), '#f2cf5a', 0.155, 0.13);
+  bits(rand, contents, 3, () => new THREE.TorusGeometry(0.035, 0.016, 4, 8, Math.PI * 1.3).rotateX(Math.PI / 2), '#f07a3a', 0.17, 0.13);
+  bits(rand, contents, 2, () => new THREE.BoxGeometry(0.1, 0.018, 0.07), '#c9785a', 0.168, 0.12);
+  for (let i = 0; i < 2; i++) {
+    const egg = mesh(new THREE.SphereGeometry(0.03, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#fbf8ee'), { cast: false });
+    egg.position.set(-0.08 + i * 0.1, 0.16, 0.08 - i * 0.05);
+    contents.add(egg);
+    const yolk = mesh(new THREE.CircleGeometry(0.014, 7).rotateX(-Math.PI / 2), mat('#f5b82e'), { cast: false });
+    yolk.position.set(egg.position.x, 0.19, egg.position.z);
+    contents.add(yolk);
+  }
+  bits(rand, contents, 8, () => new THREE.IcosahedronGeometry(0.016, 0), '#c9925a', 0.175, 0.16);
+  bits(rand, contents, 5, () => new THREE.IcosahedronGeometry(0.035, 0), '#4caf50', 0.18, 0.15);
+  const cracker = mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.012, 12), mat('#e6c78a'), { cast: false });
+  cracker.position.set(0.2, 0.25, -0.1);
+  cracker.rotation.set(0, 0.4, 0.95, 'YXZ');
+  for (let i = 0; i < 12; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * 0.14;
+    const seed = mesh(new THREE.BoxGeometry(0.014, 0.006, 0.008), mat('#2a2420'), { cast: false });
+    seed.position.set(Math.cos(a) * r, 0.008, Math.sin(a) * r);
+    cracker.add(seed);
+  }
+  contents.add(cracker);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bánh mì on its paper: a crusty loaf split open along the side, showing
+// pâté, ham, pickled carrot, herbs and chilli.
+function banhMi(rand) {
+  const g = new THREE.Group();
+  const paper = mesh(new THREE.BoxGeometry(0.46, 0.008, 0.32), mat('#efe6d0'));
+  paper.position.y = 0.004;
+  paper.rotation.y = 0.15;
+  g.add(paper);
+  const contents = new THREE.Group();
+  const loaf = mesh(new THREE.CapsuleGeometry(0.075, 0.28, 3, 8), mat('#d9963a', { roughness: 0.7 }));
+  loaf.rotation.z = Math.PI / 2;
+  loaf.scale.set(0.85, 1, 1);
+  loaf.position.y = 0.075;
+  contents.add(loaf);
+  for (let i = 0; i < 3; i++) {
+    const cut = mesh(new THREE.BoxGeometry(0.02, 0.01, 0.09), mat('#b8742a'), { cast: false });
+    cut.position.set(-0.1 + i * 0.1, 0.14, -0.01);
+    cut.rotation.y = 0.5;
+    contents.add(cut);
+  }
+  const fillings = [
+    ['#7a4a35', 0.012, 0.05],
+    ['#e8a0a0', 0.02, 0.065],
+    ['#f08a24', 0.03, 0.075],
+    ['#4caf50', 0.035, 0.085],
+  ];
+  for (const [colour, , z] of fillings) {
+    for (let i = 0; i < 5; i++) {
+      const bit = mesh(new THREE.BoxGeometry(0.07, 0.025, 0.02), mat(colour), { cast: false });
+      bit.position.set(-0.16 + i * 0.08 + range(rand, -0.02, 0.02), 0.085 + range(rand, -0.01, 0.01), z);
+      bit.rotation.y = range(rand, -0.3, 0.3);
+      contents.add(bit);
+    }
+  }
+  bits(rand, contents, 3, () => new THREE.CylinderGeometry(0.01, 0.01, 0.04, 5).rotateZ(Math.PI / 2), '#e53935', 0.1, 0.08);
+  contents.children.at(-1).position.z = 0.08;
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
 const DISH_BUILDERS = {
   pho: (rand) => noodleBowl(rand, '#d9a85b', '#3a6fb0'),
   bun: (rand) => noodleBowl(rand, '#d9542b', '#2e8b57'),
@@ -602,6 +700,9 @@ const DISH_BUILDERS = {
   'bun-bo-hue': bunBoHue,
   'com-hen': comHen,
   'banh-beo': banhBeo,
+  'cao-lau': caoLau,
+  'mi-quang': miQuang,
+  'banh-mi': banhMi,
 };
 
 // Builds a dish model; every dish exposes `userData.contents`, hidden once
