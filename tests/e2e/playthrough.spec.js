@@ -15,6 +15,7 @@ import {
   strikeFly,
   finishLevel,
   expectNoErrors,
+  SLOW,
 } from './game.js';
 
 test('home screen shows the shop sign and menu, Enter starts level 1', async ({ page }) => {
@@ -68,7 +69,7 @@ test('clicking a dish lands the fly and eating fills it up', async ({ page }) =>
   const errors = await openGame(page);
   await startGame(page);
   const dish = await clickDish(page, 'low');
-  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[0].targetScore}`, { timeout: 15_000 });
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[0].targetScore}`, SLOW);
   await expect(page.locator('.popup')).toContainText(dish.name);
   await expectNoErrors(errors);
 });
@@ -126,16 +127,17 @@ test('movement works with a Vietnamese input method switched on', async ({ page 
   const x = () => page.evaluate(() => window.__app.round.fly.x);
   const before = await x();
   // Telex/VNI send keyCode 229 and key "Process", but code names the key.
-  await page.evaluate(() => {
-    const ev = (type) => {
+  // The key is held until the fly has moved: software WebGL on CI can take
+  // longer than a quick tap to draw one frame.
+  const press = (type) =>
+    page.evaluate((type) => {
       const e = new KeyboardEvent(type, { key: 'Process', code: 'KeyD', bubbles: true });
       Object.defineProperty(e, 'keyCode', { get: () => 229 });
-      return e;
-    };
-    window.dispatchEvent(ev('keydown'));
-    setTimeout(() => window.dispatchEvent(ev('keyup')), 400);
-  });
-  await expect.poll(x).toBeGreaterThan(before + 0.1);
+      window.dispatchEvent(e);
+    }, type);
+  await press('keydown');
+  await expect.poll(x, SLOW).toBeGreaterThan(before + 0.1);
+  await press('keyup');
   await expectNoErrors(errors);
 });
 
@@ -147,7 +149,7 @@ test('level 2 is Huế and serves bánh bèo, cơm hến and bún bò Huế', as
   expect(served).toEqual(Object.values(REGIONS.hue.dishes).map((id) => DISHES[id].name).sort());
   const dish = await clickDish(page, 'low');
   expect(dish.name).toBe(DISHES[REGIONS.hue.dishes.low].name);
-  await expect(page.locator('.popup')).toContainText(dish.name, { timeout: 15_000 });
+  await expect(page.locator('.popup')).toContainText(dish.name, SLOW);
   await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[1].targetScore}`);
   await expectNoErrors(errors);
 });
@@ -176,16 +178,13 @@ for (const weapon of ['hand', 'fan']) {
       );
     const idle = () => page.evaluate((weapon) => window.__app.round.npcs.find((n) => n.weapon === weapon).state === 'idle', weapon);
 
-    // Game time advances at most 50 ms per frame, and software WebGL on CI
-    // draws only a few frames a second, so a strike can take a while.
-    const slow = { timeout: 45_000 };
     expect(await strike(true)).toBe(true);
     await expect.poll(idle).toBe(false);
-    await expect.poll(idle, slow).toBe(true);
+    await expect.poll(idle, SLOW).toBe(true);
     expect(await fullHearts(page)).toBe(3);
 
     expect(await strike(false)).toBe(true);
-    await expect.poll(() => fullHearts(page), slow).toBe(2);
+    await expect.poll(() => fullHearts(page), SLOW).toBe(2);
     await expect(page.locator('.popup.hit')).toHaveText(new RegExp(COPY.hit.join('|')));
     await expectNoErrors(errors);
   });
@@ -204,7 +203,7 @@ test('level 3 is Hội An with chè as a bonus and a nan fan among the diners', 
   expect(weapons).toContain('fan');
   const dish = await clickDish(page, 'bonus');
   expect(dish.name).toBe(DISHES.che.name);
-  await expect(page.locator('.popup')).toContainText(dish.name, { timeout: 15_000 });
+  await expect(page.locator('.popup')).toContainText(dish.name, SLOW);
   await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[2].targetScore}`);
   await expectNoErrors(errors);
 });
