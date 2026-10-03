@@ -45,6 +45,11 @@ export const COPY = {
   totalScore: 'Tổng cộng',
   livesLeft: (lives) => `Còn ${lives} mạng`,
   continue: 'Bay tiếp',
+  map: {
+    label: 'Bản đồ hành trình xuyên Việt',
+    paracels: 'Hoàng Sa',
+    spratlys: 'Trường Sa',
+  },
   victory: 'Ruồi chúa xuyên Việt!',
   victorySub: `Ăn sạch ${LEVELS.length} quán từ Bắc vô Nam.`,
   gameOver: 'Ruồi đã lên đường...',

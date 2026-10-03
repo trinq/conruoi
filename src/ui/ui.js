@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { LEVELS } from '../levels.js';
 import { COPY, levelName } from '../copy.js';
 import { MAX_LIVES } from '../gameState.js';
+import { journeyMap } from './journeyMap.js';
 
 // Tiny DOM builder: el('p', { class: 'sub' }, 'text', child, ...).
 function el(tag, attrs = {}, ...children) {
@@ -325,14 +326,12 @@ export class UI {
     this.menuHint?.remove();
   }
 
+  // Between levels: the S-shaped map with the fly heading to the next stop.
+  // After the last level the same board becomes the victory board.
   showLevelComplete({ levelIndex, levelScore, totalScore, lives }, { onNext, onRestart, onMenu }) {
     const last = levelIndex >= LEVELS.length - 1;
-    if (last) {
-      this.showScreen(
-        'result',
-        el(
-          'div',
-          { class: 'chalkboard board' },
+    const info = last
+      ? [
           el('h2', {}, COPY.victory),
           el('p', { class: 'sub' }, COPY.victorySub),
           el('div', { class: 'stats' }, el('span', {}, COPY.totalScore), el('b', {}, String(totalScore))),
@@ -342,25 +341,28 @@ export class UI {
             this.signButton(COPY.retry, onRestart, { primary: true }),
             this.button('chalk-link', COPY.home, onMenu),
           ),
-        ),
-      );
-      return;
-    }
+        ]
+      : [
+          el('h2', {}, COPY.levelDone(levelIndex)),
+          el('p', { class: 'sub' }, COPY.nextLevel(levelIndex)),
+          el(
+            'div',
+            { class: 'stats' },
+            el('span', {}, COPY.levelScore),
+            el('b', { class: 'level-score' }, String(levelScore)),
+            el('span', {}, COPY.totalScore),
+            el('b', { class: 'total-score' }, String(totalScore)),
+            el('span', { class: 'lives-left' }, COPY.livesLeft(lives)),
+          ),
+          el('div', { class: 'actions' }, this.signButton(COPY.continue, onNext, { primary: true })),
+        ];
     this.showScreen(
       'result',
       el(
         'div',
-        { class: 'chalkboard board' },
-        el('h2', {}, COPY.levelDone(levelIndex)),
-        el('p', { class: 'sub' }, COPY.nextLevel(levelIndex)),
-        el(
-          'div',
-          { class: 'stats' },
-          el('span', {}, COPY.levelScore),
-          el('b', {}, String(levelScore)),
-          el('span', {}, `${COPY.totalScore} ${totalScore} · ${COPY.livesLeft(lives)}`),
-        ),
-        el('div', { class: 'actions' }, this.signButton(COPY.continue, onNext, { primary: true })),
+        { class: `chalkboard board journey${last ? ' victory' : ''}` },
+        journeyMap(levelIndex),
+        el('div', { class: 'journey-info' }, ...info),
       ),
     );
   }

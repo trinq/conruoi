@@ -92,16 +92,50 @@ test('a strike costs a life and losing all lives ends the game', async ({ page }
   await expectNoErrors(errors);
 });
 
-test('reaching the target moves on to the next level', async ({ page }) => {
+test('reaching the target shows the journey map, then the next level', async ({ page }) => {
   const errors = await openGame(page);
   await startGame(page);
+  const levelScore = await page.evaluate(() => window.__app.round.level.targetScore);
   await finishLevel(page);
   await expect(page.locator('.banner')).toHaveText(COPY.targetReached);
   await waitForMode(page, 'result');
   await expect(board(page)).toContainText(COPY.levelDone(0));
+  await expect(board(page)).toContainText(COPY.nextLevel(0));
+
+  // Five stops in route order, Hà Nội done, Huế next.
+  const map = page.locator('.journey-map');
+  await expect(map.locator('.stop')).toHaveText(LEVELS.map((l, i) => `${i + 1}. ${REGIONS[l.region].name}`));
+  await expect(map.locator('.stop.done')).toHaveAttribute('data-stop', LEVELS[0].region);
+  await expect(map.locator('.stop.next')).toHaveAttribute('data-stop', LEVELS[1].region);
+  await expect(map.locator('.map-fly')).toBeVisible();
+  await expect(map).toHaveAttribute('data-arrived', '', SLOW);
+
+  const score = Number(await board(page).locator('.level-score').textContent());
+  expect(score).toBeGreaterThanOrEqual(levelScore);
+  await expect(board(page).locator('.total-score')).toHaveText(String(score));
+  await expect(board(page)).toContainText(COPY.livesLeft(3));
+
   await page.keyboard.press('Enter');
   await waitForMode(page, 'play');
   await expect(hud(page)).toContainText(levelName(1));
+  await expectNoErrors(errors);
+});
+
+test('the map marks every finished stop and adds up the total', async ({ page }) => {
+  const errors = await openGame(page);
+  await goToLevel(page, 2);
+  const before = await page.evaluate(() => window.__app.totalScore);
+  await finishLevel(page);
+  await waitForMode(page, 'result');
+  const map = page.locator('.journey-map');
+  const done = await map.locator('.stop.done').evaluateAll((els) => els.map((e) => e.dataset.stop));
+  expect(done).toEqual(LEVELS.slice(0, 3).map((l) => l.region));
+  await expect(map.locator('.stop.next')).toHaveAttribute('data-stop', LEVELS[3].region);
+  const level = Number(await board(page).locator('.level-score').textContent());
+  await expect(board(page).locator('.total-score')).toHaveText(String(before + level));
+  await board(page).getByRole('button', { name: COPY.continue }).click();
+  await waitForMode(page, 'play');
+  await expect(hud(page)).toContainText(levelName(3));
   await expectNoErrors(errors);
 });
 
@@ -112,9 +146,14 @@ test('finishing all five levels shows the victory board', async ({ page }) => {
     await expect(hud(page)).toContainText(levelName(i));
     await finishLevel(page);
     await waitForMode(page, 'result');
-    if (i < LEVELS.length - 1) await page.keyboard.press('Enter');
+    if (i < LEVELS.length - 1) {
+      await expect(board(page)).toContainText(COPY.levelDone(i));
+      await page.keyboard.press('Enter');
+    }
   }
   await expect(board(page)).toContainText(COPY.victory);
+  await expect(page.locator('.journey-map .stop.done')).toHaveCount(LEVELS.length);
+  await expect(board(page).getByRole('button', { name: COPY.retry })).toBeVisible();
   await board(page).getByRole('button', { name: COPY.home }).click();
   await waitForMode(page, 'menu');
   await expect(page.locator('.title-sign')).toContainText(COPY.title);

@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Map with five stops in route order; finished stops marked
-- [ ] Fly travel animation to the next stop; Enter continues
-- [ ] Level and total score shown
-- [ ] Victory board after level 5 with "Bay lại phát nữa" and "Về quán"; e2e covers the map
+- [x] Map with five stops in route order; finished stops marked
+- [x] Fly travel animation to the next stop; Enter continues
+- [x] Level and total score shown
+- [x] Victory board after level 5 with "Bay lại phát nữa" and "Về quán"; e2e covers the map
