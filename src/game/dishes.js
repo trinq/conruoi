@@ -10,9 +10,9 @@ export const TIERS = {
 
 // `model` names the low-poly builder used to draw the dish.
 const CATALOGUE = {
-  'pho-bo': { name: 'Phở bò', tier: 'high', model: 'pho' },
-  'bun-cha': { name: 'Bún chả', tier: 'medium', model: 'bun' },
-  'banh-cuon': { name: 'Bánh cuốn', tier: 'low', model: 'com' },
+  'pho-bo': { name: 'Phở bò', tier: 'high', model: 'pho-bo' },
+  'bun-cha': { name: 'Bún chả', tier: 'medium', model: 'bun-cha' },
+  'banh-cuon': { name: 'Bánh cuốn', tier: 'low', model: 'banh-cuon' },
   'bun-bo-hue': { name: 'Bún bò Huế', tier: 'high', model: 'bun' },
   'com-hen': { name: 'Cơm hến', tier: 'medium', model: 'com' },
   'banh-beo': { name: 'Bánh bèo', tier: 'low', model: 'com' },

@@ -385,12 +385,115 @@ function che() {
   return g;
 }
 
+function soup(contents, color, radius = 0.27, y = 0.16) {
+  const surface = mesh(new THREE.CircleGeometry(radius, 12), mat(color), { cast: false });
+  surface.rotation.x = -Math.PI / 2;
+  surface.position.y = y;
+  contents.add(surface);
+}
+
+function smallPlate(radius = 0.34) {
+  const plate = mesh(new THREE.CylinderGeometry(radius, radius * 0.78, 0.04, 14), mat('#f7f4ec', { roughness: 0.5 }));
+  plate.position.y = 0.02;
+  return plate;
+}
+
+// Phở bò: clear golden broth, rare beef, rice noodles, spring onion.
+function phoBo(rand) {
+  const g = bowlShell('#3a6fb0');
+  const contents = new THREE.Group();
+  soup(contents, '#e7c27c');
+  bits(rand, contents, 8, () => new THREE.BoxGeometry(0.2, 0.02, 0.025), '#fff6d8', 0.165, 0.15);
+  bits(rand, contents, 4, () => new THREE.BoxGeometry(0.13, 0.015, 0.09), '#c97b6a', 0.172, 0.13);
+  bits(rand, contents, 9, () => new THREE.CylinderGeometry(0.018, 0.018, 0.012, 6), '#5fbf3a', 0.18, 0.2);
+  bits(rand, contents, 3, () => new THREE.IcosahedronGeometry(0.03, 0), '#2f8f3a', 0.18, 0.16);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bún chả: a bowl of dipping sauce with grilled pork patties and papaya,
+// beside a plate of white vermicelli and herbs.
+function bunCha(rand) {
+  const g = new THREE.Group();
+  const bowl = bowlShell('#c8102e');
+  bowl.scale.setScalar(0.72);
+  bowl.position.set(0.13, 0, -0.06);
+  g.add(bowl);
+  const plate = smallPlate(0.2);
+  plate.position.set(-0.17, 0.02, 0.1);
+  g.add(plate);
+
+  const contents = new THREE.Group();
+  const sauce = new THREE.Group();
+  soup(sauce, '#c98a3c');
+  bits(rand, sauce, 4, () => new THREE.IcosahedronGeometry(0.055, 0), '#6b3a1f', 0.18, 0.12);
+  bits(rand, sauce, 4, () => new THREE.BoxGeometry(0.06, 0.012, 0.03), '#f2c36b', 0.185, 0.14);
+  sauce.scale.setScalar(0.72);
+  sauce.position.copy(bowl.position);
+  contents.add(sauce);
+  const noodles = mesh(jitter(new THREE.IcosahedronGeometry(0.12, 1), 0.02, rand), mat('#ffffff'), { cast: false });
+  noodles.scale.set(1, 0.45, 1);
+  noodles.position.set(-0.19, 0.07, 0.1);
+  contents.add(noodles);
+  const herbs = mesh(jitter(new THREE.IcosahedronGeometry(0.08, 0), 0.02, rand), mat('#4caf50'));
+  herbs.position.set(-0.05, 0.08, 0.2);
+  contents.add(herbs);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bánh cuốn: rolled rice sheets with fried shallots and chả lụa slices,
+// and a little bowl of fish sauce.
+function banhCuon(rand) {
+  const g = new THREE.Group();
+  g.add(smallPlate(0.34));
+  const dip = bowlShell('#3a6fb0');
+  dip.scale.setScalar(0.45);
+  dip.position.set(0.24, 0, -0.18);
+  g.add(dip);
+  const contents = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const roll = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.26, 7), mat('#f4f1e6', { roughness: 0.4 }));
+    // Lying flat on the plate, angled a little.
+    roll.rotation.set(0, 0.5, Math.PI / 2, 'YXZ');
+    roll.position.set(-0.08 + (i % 2) * 0.02, 0.07 + Math.floor(i / 2) * 0.07, -0.12 + (i % 2) * 0.1 + Math.floor(i / 2) * 0.05);
+    contents.add(roll);
+  }
+  bits(rand, contents, 14, () => new THREE.IcosahedronGeometry(0.014, 0), '#c98a2e', 0.15, 0.14);
+  for (let i = 0; i < 3; i++) {
+    const cha = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.02, 9), mat('#f1d3c2'));
+    cha.position.set(0.16 + i * 0.03, 0.05 + i * 0.012, 0.12 - i * 0.04);
+    cha.rotation.x = 0.3;
+    contents.add(cha);
+  }
+  const fishSauce = new THREE.Group();
+  soup(fishSauce, '#d9893a');
+  fishSauce.scale.setScalar(0.45);
+  fishSauce.position.copy(dip.position);
+  contents.add(fishSauce);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+const DISH_BUILDERS = {
+  pho: (rand) => noodleBowl(rand, '#d9a85b', '#3a6fb0'),
+  bun: (rand) => noodleBowl(rand, '#d9542b', '#2e8b57'),
+  com: (rand) => comTam(rand),
+  che: () => che(),
+  'pho-bo': phoBo,
+  'bun-cha': bunCha,
+  'banh-cuon': banhCuon,
+};
+
+// Builds a dish model; every dish exposes `userData.contents`, hidden once
+// the dish has been eaten.
 export function dish(type, rand) {
-  if (type === 'pho') return noodleBowl(rand, '#d9a85b', '#3a6fb0');
-  if (type === 'bun') return noodleBowl(rand, '#d9542b', '#2e8b57');
-  if (type === 'com') return comTam(rand);
-  if (type === 'che') return che();
-  throw new Error(`unknown dish ${type}`);
+  const build = DISH_BUILDERS[type];
+  if (!build) throw new Error(`unknown dish ${type}`);
+  return build(rand);
 }
 
 // ----- characters ----------------------------------------------------------

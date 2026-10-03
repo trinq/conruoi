@@ -37,7 +37,7 @@ export class Round {
       for (const f of level.tables[i].foods) {
         const food = new Food(t, dishFor(level.region, f), f, rand);
         this.foods.push(food);
-        this.group.add(food.model);
+        this.group.add(...food.objects);
       }
     }
 

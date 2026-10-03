@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Phở bò, bún chả, bánh cuốn recognisable at gameplay distance
-- [ ] Eaten dish shows empty and refills after the respawn time
-- [ ] Each dish shows its points
-- [ ] Level 1 uses these dishes
+- [x] Phở bò, bún chả, bánh cuốn recognisable at gameplay distance
+- [x] Eaten dish shows empty and refills after the respawn time
+- [x] Each dish shows its points
+- [x] Level 1 uses these dishes
