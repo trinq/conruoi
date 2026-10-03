@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] MenuScene displays game title "Con Ruồi" in pixel art style and a "Chơi" (Play) button
-- [ ] Clicking Play transitions to GameScene at level 1
-- [ ] When lives reach 0, GameOverScene is shown with final score
-- [ ] GameOverScene has a "Chơi Lại" (Play Again) button that restarts from level 1
-- [ ] When score reaches target, LevelCompleteScene is shown
-- [ ] LevelCompleteScene has a "Tiếp Tục" (Continue) button to advance to next level
-- [ ] Scene transitions have smooth fade or visual effect
-- [ ] Game state (score, lives) resets properly on restart
+- [x] MenuScene displays game title "Con Ruồi" in pixel art style and a "Chơi" (Play) button
+- [x] Clicking Play transitions to GameScene at level 1
+- [x] When lives reach 0, GameOverScene is shown with final score
+- [x] GameOverScene has a "Chơi Lại" (Play Again) button that restarts from level 1
+- [x] When score reaches target, LevelCompleteScene is shown
+- [x] LevelCompleteScene has a "Tiếp Tục" (Continue) button to advance to next level
+- [x] Scene transitions have smooth fade or visual effect
+- [x] Game state (score, lives) resets properly on restart

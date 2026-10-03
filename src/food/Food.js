@@ -28,6 +28,18 @@ export class Food {
       .setInteractive({ useHandCursor: true });
 
     this.bar = scene.add.graphics().setDepth(10000);
+
+    // Bonus dishes bob to catch the eye.
+    if (this.info.bonus) {
+      scene.tweens.add({
+        targets: this.sprite,
+        y: this.sprite.y - 4,
+        duration: 450,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+    }
   }
 
   // Draws the eating progress bar above the dish; 0 hides it.

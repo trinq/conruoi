@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] Level config data structure (array) defines parameters for each level
-- [ ] Level 1: single small table, 1 NPC, slow slaps, low target score (tutorial feel)
-- [ ] Level 2: larger table, 2 NPCs, moderate slap speed, more food variety
-- [ ] Level 3: multiple tables, 2-3 NPCs, faster slaps, higher target score
-- [ ] Level 4 (stretch): crowded stall, 3+ NPCs, fast slaps, bonus food items
-- [ ] Level 5 (stretch): night market scene, maximum difficulty
-- [ ] GameScene reads level config to set up scene dynamically
-- [ ] Completing the final level shows a victory screen or special GameOverScene
-- [ ] Difficulty increase is noticeable but fair between levels
+- [x] Level config data structure (array) defines parameters for each level
+- [x] Level 1: single small table, 1 NPC, slow slaps, low target score (tutorial feel)
+- [x] Level 2: larger table, 2 NPCs, moderate slap speed, more food variety
+- [x] Level 3: multiple tables, 2-3 NPCs, faster slaps, higher target score
+- [x] Level 4 (stretch): crowded stall, 3+ NPCs, fast slaps, bonus food items
+- [x] Level 5 (stretch): night market scene, maximum difficulty
+- [x] GameScene reads level config to set up scene dynamically
+- [x] Completing the final level shows a victory screen or special GameOverScene
+- [x] Difficulty increase is noticeable but fair between levels

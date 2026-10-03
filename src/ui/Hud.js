@@ -1,17 +1,19 @@
-const STYLE = {
-  fontFamily: 'monospace',
-  fontSize: '22px',
-  fontStyle: 'bold',
-  color: '#fff6d5',
-  stroke: '#3b2412',
-  strokeThickness: 5,
-};
+import { TEXT_STYLE as STYLE } from './style.js';
 
 export class Hud {
   constructor(scene) {
     this.scene = scene;
     this.scoreText = scene.add.text(16, 12, '', STYLE).setDepth(20000).setScrollFactor(0);
     this.hearts = [];
+    this.levelText = scene.add
+      .text(scene.scale.width / 2, 12, '', { ...STYLE, fontSize: '24px', color: '#ffe8a8' })
+      .setOrigin(0.5, 0)
+      .setDepth(20000)
+      .setScrollFactor(0);
+  }
+
+  setLevel(text) {
+    this.levelText.setText(text);
   }
 
   // Hearts in the top-right corner: full for remaining lives, empty for lost.
@@ -36,7 +38,7 @@ export class Hud {
   banner(text) {
     const { width, height } = this.scene.scale;
     this.scene.add
-      .text(width / 2, height / 2, text, { ...STYLE, fontSize: '48px', strokeThickness: 8 })
+      .text(width / 2, height / 2, text, { ...STYLE, fontSize: '64px', strokeThickness: 8 })
       .setOrigin(0.5)
       .setDepth(20001)
       .setScrollFactor(0);
@@ -49,7 +51,7 @@ export class Hud {
   // Floating "+N" popup that drifts up and fades out.
   popup(x, y, text) {
     const t = this.scene.add
-      .text(x, y, text, { ...STYLE, fontSize: '18px', color: '#ffe066' })
+      .text(x, y, text, { ...STYLE, fontSize: '24px', color: '#ffe066' })
       .setOrigin(0.5)
       .setDepth(20000);
     this.scene.tweens.add({
