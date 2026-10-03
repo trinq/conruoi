@@ -59,6 +59,18 @@ export async function finishLevel(page) {
   });
 }
 
+// From the home screen, plays through to level `index` (0-based) by
+// finishing every level before it.
+export async function goToLevel(page, index) {
+  await startGame(page);
+  for (let i = 0; i < index; i++) {
+    await finishLevel(page);
+    await waitForMode(page, 'result');
+    await page.keyboard.press('Enter');
+    await waitForMode(page, 'play');
+  }
+}
+
 export async function expectNoErrors(errors) {
   expect(errors, errors.join('\n')).toEqual([]);
 }

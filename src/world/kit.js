@@ -512,3 +512,234 @@ export function coconutPalm(rand) {
   }
   return g;
 }
+
+// ----- old town houses -----
+
+const MOSS = ['#4f6a32', '#455f2c', '#5a7438', '#3d5528'];
+
+// Triangular wall that closes the end of a gable roof: base `depth` along
+// z, `height` at the ridge, `width` thick along x.
+function gableEnd(width, depth, height) {
+  const shape = new THREE.Shape();
+  shape.moveTo(-depth / 2, 0);
+  shape.lineTo(depth / 2, 0);
+  shape.lineTo(0, height);
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: width, bevelEnabled: false });
+  geo.rotateY(Math.PI / 2);
+  geo.translate(-width / 2, 0, 0);
+  return geo;
+}
+
+// One slope of old clay tiles: rows of ridged tiles, darker where they are
+// weathered, and patches of moss. `len` runs down the slope (local z).
+function tiledSlope(rand, width, len, { tile, moss }) {
+  const slope = mesh(new THREE.BoxGeometry(width, 0.14, len), mat(tile));
+  const rowMat = mat('#4f3a2e');
+  for (let x = -width / 2 + 0.15; x < width / 2; x += 0.3) {
+    const row = mesh(new THREE.BoxGeometry(0.09, 0.07, len), rowMat, { cast: false });
+    row.position.set(x, 0.09, 0);
+    slope.add(row);
+  }
+  const patches = Math.round(moss * width * len * 0.6);
+  for (let i = 0; i < patches; i++) {
+    const r = range(rand, 0.18, 0.42);
+    const patch = mesh(jitter(new THREE.IcosahedronGeometry(r, 0), r * 0.25, rand), mat(pick(rand, MOSS)), { cast: false });
+    patch.scale.set(1.4, 0.08, 1);
+    patch.position.set(range(rand, -width / 2 + r, width / 2 - r), 0.1, range(rand, -len / 2 + r, len / 2 - r));
+    slope.add(patch);
+  }
+  return slope;
+}
+
+// Gable roof over walls running from z = front back to z = rear, with its
+// ridge along x halfway between them and the slopes meeting the wall tops
+// at y = wallTop. The front slope overhangs to z = eave; ridge ends curl up.
+// Returns the roof and the ridge's height above the wall tops.
+function gableRoof(rand, { width, wallTop, front, rear, eave, pitch = 0.5, tile, moss, ridgeColour = '#e3dccb' }) {
+  const g = new THREE.Group();
+  const ridge = (front + rear) / 2;
+  const tan = Math.tan(pitch);
+  const rise = (front - ridge) * tan;
+  const top = wallTop + rise;
+  const slope = (from, to, mossiness) => {
+    const run = Math.abs(to - from);
+    const s = tiledSlope(rand, width + 0.5, run / Math.cos(pitch) + 0.1, { tile, moss: mossiness });
+    s.position.set(0, top - (run / 2) * tan, (from + to) / 2);
+    s.rotation.x = Math.sign(to - from) * pitch;
+    return s;
+  };
+  g.add(slope(ridge, eave, moss), slope(ridge, rear - 0.4, moss * 0.5));
+  const ridgeMat = mat(ridgeColour);
+  const crest = mesh(new THREE.BoxGeometry(width + 0.3, 0.2, 0.3), ridgeMat);
+  crest.position.set(0, top + 0.1, ridge);
+  g.add(crest);
+  for (const side of [-1, 1]) {
+    const curl = mesh(new THREE.BoxGeometry(0.5, 0.16, 0.26), ridgeMat);
+    curl.position.set(side * (width / 2 + 0.3), top + 0.22, ridge);
+    curl.rotation.z = side * 0.5;
+    g.add(curl);
+  }
+  return { roof: g, rise, ridge };
+}
+
+// A row of wooden panel doors across a shopfront, some taken down so the
+// dark inside shows (cửa bức bàn).
+function panelDoors(rand, width, height, wood) {
+  const g = new THREE.Group();
+  const inside = mesh(new THREE.BoxGeometry(width, height, 0.06), mat('#2e221b'), { cast: false });
+  inside.position.y = height / 2;
+  g.add(inside);
+  const n = Math.max(4, Math.round(width / 0.55));
+  const w = width / n;
+  const open = new Set([Math.floor(n / 2) - 1, Math.floor(n / 2), ...(rand() < 0.5 ? [0] : [])]);
+  const panel = mat(wood);
+  const frame = mat('#3b2618');
+  for (let i = 0; i < n; i++) {
+    if (open.has(i)) continue;
+    const p = mesh(new THREE.BoxGeometry(w - 0.03, height, 0.06), panel);
+    p.position.set(-width / 2 + w * (i + 0.5), height / 2, 0.05);
+    g.add(p);
+    const inset = mesh(new THREE.BoxGeometry(w * 0.6, height * 0.35, 0.02), frame, { cast: false });
+    inset.position.set(p.position.x, height * 0.72, 0.09);
+    g.add(inset);
+  }
+  const lintel = mesh(new THREE.BoxGeometry(width + 0.2, 0.18, 0.18), frame);
+  lintel.position.set(0, height + 0.09, 0.06);
+  g.add(lintel);
+  return g;
+}
+
+// Old town house with a tiled gable roof, the kind seen in Huế and Hội An.
+//
+// - verandah: one storey set back behind a row of wooden columns, the roof
+//   running down over them (Huế nhà rường). Otherwise the house has a
+//   panel-door shopfront under a little tiled awning, and upper floors with
+//   shuttered windows (Hội An).
+// - wall, wood: colours of the walls and of the doors and columns.
+// - moss: 0..1, how mossy the tiles are.
+export function oldTownHouse(
+  rand,
+  { width = 5, depth = 6, floors = 1, verandah = false, wall = '#e8e1cc', wood = '#6b3b24', tile = '#7a5646', moss = 0.5, sign = null, signColours } = {},
+) {
+  const g = new THREE.Group();
+  const groundH = verandah ? 2.7 : 3.0;
+  const height = groundH + 2.6 * (floors - 1);
+  const front = verandah ? -1.4 : 0;
+  const wallMat = mat(wall);
+
+  const body = mesh(new THREE.BoxGeometry(width, height, depth + front), wallMat);
+  body.position.set(0, height / 2, (front - depth) / 2);
+  g.add(body);
+  // Damp, darker plinth along the bottom of the wall.
+  const plinth = mesh(new THREE.BoxGeometry(width + 0.02, 0.45, 0.05), mat('#9c968a'), { cast: false });
+  plinth.position.set(0, 0.225, front + 0.01);
+  g.add(plinth);
+
+  const doors = panelDoors(rand, width - (verandah ? 1.2 : 0.6), groundH - 0.5, wood);
+  doors.position.set(0, 0.05, front);
+  g.add(doors);
+
+  if (verandah) {
+    const floor = mesh(new THREE.BoxGeometry(width, 0.2, -front + 0.3), mat('#a59a86'));
+    floor.position.set(0, 0.1, front / 2 + 0.15);
+    g.add(floor);
+    const post = mat(wood);
+    const n = Math.max(2, Math.round(width / 2) + 1);
+    for (let i = 0; i < n; i++) {
+      const col = mesh(new THREE.CylinderGeometry(0.11, 0.12, groundH, 7), post);
+      col.position.set(-width / 2 + 0.3 + (i * (width - 0.6)) / (n - 1), groundH / 2 + 0.2, -0.05);
+      g.add(col);
+      const base = mesh(new THREE.BoxGeometry(0.3, 0.16, 0.3), mat('#8d8679'));
+      base.position.set(col.position.x, 0.28, -0.05);
+      g.add(base);
+    }
+    const beam = mesh(new THREE.BoxGeometry(width, 0.2, 0.2), post);
+    beam.position.set(0, groundH + 0.15, -0.05);
+    g.add(beam);
+  } else {
+    // Small tiled awning over the shopfront on carved brackets.
+    const awning = tiledSlope(rand, width + 0.2, 1.2, { tile, moss: moss * 0.6 });
+    awning.position.set(0, groundH + 0.05, 0.5);
+    awning.rotation.x = 0.35;
+    g.add(awning);
+    for (const x of [-width / 2 + 0.3, width / 2 - 0.3]) {
+      const bracket = mesh(new THREE.BoxGeometry(0.12, 0.12, 0.9), mat(wood));
+      bracket.position.set(x, groundH - 0.25, 0.4);
+      bracket.rotation.x = 0.5;
+      g.add(bracket);
+    }
+    for (let f = 1; f < floors; f++) {
+      const y = groundH + 2.6 * (f - 1);
+      const winW = Math.min(1.3, width * 0.28);
+      const count = width > 4.4 ? 2 : 1;
+      for (let i = 0; i < count; i++) {
+        const win = windowWithShutters(rand, winW, 1.25);
+        win.position.set(count === 1 ? 0 : (i - 0.5) * width * 0.48, y + 1.55, 0.03);
+        g.add(win);
+      }
+      if (!sign && rand() < 0.6) {
+        // Wooden balcony rail.
+        const rail = mesh(new THREE.BoxGeometry(width - 0.4, 0.08, 0.08), mat(wood));
+        rail.position.set(0, y + 1.1, 0.55);
+        g.add(rail);
+        const slab = mesh(new THREE.BoxGeometry(width - 0.3, 0.1, 0.6), mat(wood));
+        slab.position.set(0, y + 0.35, 0.3);
+        g.add(slab);
+        for (let x = -width / 2 + 0.3; x <= width / 2 - 0.3; x += 0.22) {
+          const bar = mesh(new THREE.BoxGeometry(0.04, 0.75, 0.04), mat(wood), { cast: false });
+          bar.position.set(x, y + 0.75, 0.55);
+          g.add(bar);
+        }
+      }
+    }
+  }
+
+  if (sign) {
+    // Hung from the verandah beam, or above the awning.
+    const s = shopSign(sign, Math.min(width - 0.6, 3.6), verandah ? 0.6 : 0.5, signColours);
+    if (verandah) s.position.set(0, groundH - 0.25, 0.08);
+    else s.position.set(0, groundH + 0.6, 0.15);
+    g.add(s);
+  }
+
+  const { roof, rise, ridge } = gableRoof(rand, {
+    width,
+    wallTop: height,
+    front,
+    rear: -depth,
+    eave: verandah ? 0.5 : front + 0.35,
+    tile,
+    moss,
+  });
+  g.add(roof);
+  for (const side of [-1, 1]) {
+    const gable = mesh(gableEnd(0.1, depth + front, rise), wallMat);
+    gable.position.set(side * (width / 2 - 0.05), height, ridge);
+    g.add(gable);
+  }
+  return g;
+}
+
+// Hoa giấy: bougainvillea spilling over a wall, mostly magenta bracts with
+// some leaves. Spreads `width` along x and hangs `drop` down from y = 0.
+export function bougainvillea(rand, { width = 2, drop = 1.8 } = {}) {
+  const g = new THREE.Group();
+  const pinks = ['#d6247a', '#e0368a', '#c41f6e', '#f05aa0', '#b81c63'];
+  const leaves = ['#3f7d2c', '#4f9036'];
+  const n = Math.round(width * 9);
+  for (let i = 0; i < n; i++) {
+    const x = range(rand, -width / 2, width / 2);
+    // Fuller at the top, trailing off lower down.
+    const y = -drop * rand() ** 1.8;
+    const r = range(rand, 0.14, 0.3) * (1 + y / drop / 2);
+    const leaf = rand() < 0.25;
+    const blob = mesh(jitter(new THREE.IcosahedronGeometry(r, 0), r * 0.2, rand), mat(pick(rand, leaf ? leaves : pinks)), { cast: false });
+    blob.position.set(x, y, range(rand, 0, 0.25));
+    g.add(blob);
+  }
+  const stem = mesh(new THREE.CylinderGeometry(0.04, 0.05, drop + 0.5, 5), mat('#5a4030'));
+  stem.position.set(range(rand, -width / 3, width / 3), -drop / 2, 0.05);
+  g.add(stem);
+  return g;
+}

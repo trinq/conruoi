@@ -62,17 +62,18 @@ function roadTexture() {
 }
 
 // Ground for a street scene: pavement from the facades to the curb, a curb
-// and the road. `tiles` sets the pavement colours.
-export function streetGround({ tiles = ['#c9b7a0', '#bfa98f', '#d1c0a8'], line = '#9c8a74' } = {}) {
+// and the road. `tiles` sets the pavement colours; `back` is the z where the
+// pavement stops behind the play area (a riverbank stops it early).
+export function streetGround({ tiles = ['#c9b7a0', '#bfa98f', '#d1c0a8'], line = '#9c8a74', back = FACADE_Z - 1 } = {}) {
   const g = new THREE.Group();
   const width = 90;
-  const depth = CURB_Z - FACADE_Z + 1;
+  const depth = CURB_Z - back;
   const pavement = new THREE.Mesh(
     new THREE.BoxGeometry(width, 0.08, depth),
     new THREE.MeshStandardMaterial({ map: tileTexture(tiles, line, [width / 2.4, depth / 2.4]), roughness: 0.95 }),
   );
   pavement.receiveShadow = true;
-  pavement.position.set(0, 0, (FACADE_Z - 1 + CURB_Z) / 2);
+  pavement.position.set(0, 0, (back + CURB_Z) / 2);
   g.add(pavement);
 
   const curb = mesh(new THREE.BoxGeometry(width, 0.18, 0.3), mat('#cfccc4'), { cast: false });

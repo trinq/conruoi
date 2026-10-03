@@ -1,7 +1,21 @@
 import { test, expect } from '@playwright/test';
 import { COPY, levelName } from '../../src/copy.js';
 import { LEVELS } from '../../src/levels.js';
-import { openGame, waitForMode, startGame, hud, board, fullHearts, clickDish, strikeFly, finishLevel, expectNoErrors } from './game.js';
+import { REGIONS } from '../../src/regions.js';
+import { DISHES } from '../../src/game/dishes.js';
+import {
+  openGame,
+  waitForMode,
+  startGame,
+  goToLevel,
+  hud,
+  board,
+  fullHearts,
+  clickDish,
+  strikeFly,
+  finishLevel,
+  expectNoErrors,
+} from './game.js';
 
 test('home screen shows the shop sign and menu, Enter starts level 1', async ({ page }) => {
   const errors = await openGame(page);
@@ -122,5 +136,18 @@ test('movement works with a Vietnamese input method switched on', async ({ page 
     setTimeout(() => window.dispatchEvent(ev('keyup')), 400);
   });
   await expect.poll(x).toBeGreaterThan(before + 0.1);
+  await expectNoErrors(errors);
+});
+
+test('level 2 is Huế and serves bánh bèo, cơm hến and bún bò Huế', async ({ page }) => {
+  const errors = await openGame(page);
+  await goToLevel(page, 1);
+  await expect(hud(page)).toContainText(levelName(1));
+  const served = await page.evaluate(() => [...new Set(window.__app.round.foods.map((f) => f.info.name))].sort());
+  expect(served).toEqual(Object.values(REGIONS.hue.dishes).map((id) => DISHES[id].name).sort());
+  const dish = await clickDish(page, 'low');
+  expect(dish.name).toBe(DISHES[REGIONS.hue.dishes.low].name);
+  await expect(page.locator('.popup')).toContainText(dish.name, { timeout: 15_000 });
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[1].targetScore}`);
   await expectNoErrors(errors);
 });
