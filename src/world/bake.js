@@ -3,7 +3,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 // Merges every static mesh under `root` into one mesh per material, so a
 // street of hundreds of little boxes costs a few dozen draw calls. Meshes
-// with textures or transparency are kept as they are.
+// that share a textured material (signs drawn from one atlas) are merged
+// too, keeping their UVs. Transparent meshes are kept as they are.
 export function bakeStatic(root) {
   root.updateMatrixWorld(true);
   const buckets = new Map();
@@ -11,13 +12,14 @@ export function bakeStatic(root) {
   root.traverse((o) => {
     if (!o.isMesh) return;
     const m = o.material;
-    if (Array.isArray(m) || m.map || m.transparent || o.isInstancedMesh) {
+    if (Array.isArray(m) || m.transparent || o.isInstancedMesh || (m.map && !o.geometry.attributes.uv)) {
       keep.push(o);
       return;
     }
     const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    const keepUv = Boolean(m.map);
     for (const name of Object.keys(g.attributes)) {
-      if (name !== 'position' && name !== 'normal') g.deleteAttribute(name);
+      if (name !== 'position' && name !== 'normal' && !(keepUv && name === 'uv')) g.deleteAttribute(name);
     }
     if (!g.attributes.normal) g.computeVertexNormals();
     g.applyMatrix4(o.matrixWorld);

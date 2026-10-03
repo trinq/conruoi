@@ -209,3 +209,25 @@ test('level 3 is Hội An with chè as a bonus and a nan fan among the diners', 
   await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[2].targetScore}`);
   await expectNoErrors(errors);
 });
+
+test('level 4 is the Sài Gòn alley with hủ tiếu and cơm tấm, and a swatter among the diners', async ({ page }) => {
+  const errors = await openGame(page);
+  await goToLevel(page, 3);
+  await expect(hud(page)).toContainText(levelName(3));
+  const { served, weapons } = await page.evaluate(() => {
+    const r = window.__app.round;
+    return { served: [...new Set(r.foods.map((f) => f.info.name))].sort(), weapons: r.npcs.map((n) => n.weapon) };
+  });
+  const expected = [...Object.values(REGIONS.saigon.dishes), ...REGIONS.saigon.bonus].map((id) => DISHES[id].name).sort();
+  expect(served).toEqual(expected);
+  expect(weapons).toEqual(expect.arrayContaining(['hand', 'fan', 'swatter']));
+  // Four diners strike often here; keep them eating so the fly can finish.
+  await page.evaluate(() => {
+    for (const n of window.__app.round.npcs) n.cooldown = Infinity;
+  });
+  const dish = await clickDish(page, 'medium');
+  expect(dish.name).toBe(DISHES[REGIONS.saigon.dishes.medium].name);
+  await expect(page.locator('.popup')).toContainText(dish.name, SLOW);
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[3].targetScore}`);
+  await expectNoErrors(errors);
+});

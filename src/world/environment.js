@@ -4,6 +4,7 @@ import { tree, pine, bush, rock, crate, barrel, stall, pond, lantern } from './m
 import { buildHanoi } from './scenes/hanoi.js';
 import { buildHue } from './scenes/hue.js';
 import { buildHoian } from './scenes/hoian.js';
+import { buildSaigon } from './scenes/saigon.js';
 
 import { PAVING } from './area.js';
 
@@ -271,7 +272,7 @@ function buildMeadow() {
   };
 }
 
-const SCENES = { hanoi: buildHanoi, hue: buildHue, hoian: buildHoian };
+const SCENES = { hanoi: buildHanoi, hue: buildHue, hoian: buildHoian, saigon: buildSaigon };
 
 // Owns the scenery for every region. Each region's scene is built the first
 // time it is needed and kept, so switching levels back and forth is cheap.

@@ -689,6 +689,121 @@ function banhMi(rand) {
   return g;
 }
 
+// Hủ tiếu Nam Vang: clear pork broth over thin, glassy rice noodles,
+// topped with shrimp, sliced pork, minced pork, quail eggs, chives and
+// fried garlic.
+function huTieu(rand) {
+  const g = bowlShell('#e07a1f');
+  const contents = new THREE.Group();
+  soup(contents, '#e9d9a6');
+  bits(rand, contents, 14, lyingNoodle(0.2, 0.007), '#f6f2e6', 0.165, 0.15);
+  // Shrimp curled into pink half-rings.
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + rand();
+    const shrimp = mesh(new THREE.TorusGeometry(0.04, 0.017, 4, 8, Math.PI * 1.4), mat('#f2875a'), { cast: false });
+    shrimp.rotation.set(-Math.PI / 2, 0, a);
+    shrimp.position.set(Math.cos(a) * 0.13, 0.18, Math.sin(a) * 0.13);
+    contents.add(shrimp);
+    const tail = mesh(new THREE.BoxGeometry(0.025, 0.012, 0.03), mat('#e2563a'), { cast: false });
+    tail.position.set(shrimp.position.x + Math.cos(a + 1.2) * 0.04, 0.185, shrimp.position.z + Math.sin(a + 1.2) * 0.04);
+    contents.add(tail);
+  }
+  bits(rand, contents, 3, () => new THREE.BoxGeometry(0.11, 0.014, 0.07), '#f0d0c0', 0.172, 0.12);
+  bits(rand, contents, 10, () => new THREE.IcosahedronGeometry(0.018, 0), '#9a6448', 0.172, 0.1);
+  for (let i = 0; i < 2; i++) {
+    const egg = mesh(new THREE.SphereGeometry(0.032, 8, 5), mat('#f6f0de'), { cast: false });
+    egg.scale.y = 0.8;
+    egg.position.set(-0.05 + i * 0.09, 0.18, -0.09 + i * 0.03);
+    contents.add(egg);
+  }
+  bits(rand, contents, 10, lyingNoodle(0.06, 0.008), '#3f9a32', 0.182, 0.18);
+  bits(rand, contents, 12, () => new THREE.IcosahedronGeometry(0.01, 0), '#d9a23a', 0.185, 0.16);
+  // A few torn lettuce leaves at the side of the bowl.
+  for (let i = 0; i < 3; i++) {
+    const leaf = mesh(new THREE.BoxGeometry(0.07, 0.008, 0.05), mat('#8fd15a'), { cast: false });
+    leaf.position.set(0.17 + i * 0.02, 0.19 + i * 0.006, 0.06 + i * 0.03);
+    leaf.rotation.set(0.3, rand() * 3, 0.2);
+    contents.add(leaf);
+  }
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Cơm tấm sườn bì chả: broken rice on a plate with a grilled pork chop,
+// shredded pork skin, a slab of steamed egg meatloaf, a fried egg, pickles
+// and cucumber, scallion oil on the rice, and a cup of fish sauce.
+function comTamSuon(rand) {
+  const g = new THREE.Group();
+  const plate = mesh(new THREE.CylinderGeometry(0.36, 0.28, 0.04, 16), mat('#f7f4ec', { roughness: 0.5 }));
+  plate.scale.z = 0.82;
+  plate.position.y = 0.02;
+  g.add(plate);
+  const cup = bowlShell('#3a6fb0');
+  cup.scale.setScalar(0.32);
+  cup.position.set(0.3, 0, -0.24);
+  g.add(cup);
+
+  const contents = new THREE.Group();
+  const rice = mesh(jitter(new THREE.IcosahedronGeometry(0.14, 1), 0.012, rand), mat('#fbfaf0'));
+  rice.scale.set(1.1, 0.5, 1);
+  rice.position.set(-0.12, 0.07, 0.03);
+  contents.add(rice);
+  moundBits(rand, contents, 8, () => new THREE.BoxGeometry(0.03, 0.01, 0.012), '#5fbf3a', 0.07, 0.13, 0.07);
+  // Sườn: a grilled chop with the bone along one edge and char marks.
+  const chop = mesh(new THREE.BoxGeometry(0.24, 0.035, 0.14), mat('#9a4a22'));
+  chop.position.set(0.1, 0.06, -0.06);
+  chop.rotation.y = 0.35;
+  contents.add(chop);
+  for (let i = 0; i < 3; i++) {
+    const mark = mesh(new THREE.BoxGeometry(0.02, 0.008, 0.13), mat('#4a2412'), { cast: false });
+    mark.position.set(-0.07 + i * 0.07, 0.02, 0);
+    chop.add(mark);
+  }
+  const bone = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 5), mat('#efe2c8'), { cast: false });
+  bone.rotation.z = Math.PI / 2;
+  bone.position.set(0, 0.012, -0.07);
+  chop.add(bone);
+  // Bì: a nest of pale shredded skin.
+  bits(rand, contents, 12, lyingNoodle(0.08, 0.006), '#efe0b8', 0.05, 0.05);
+  for (const c of contents.children.slice(-12)) c.position.add(new THREE.Vector3(-0.05, 0, -0.17));
+  // Chả trứng: steamed egg meatloaf with its yellow top.
+  const cha = mesh(new THREE.BoxGeometry(0.1, 0.045, 0.08), mat('#c99a6a'));
+  cha.position.set(0.17, 0.06, 0.1);
+  contents.add(cha);
+  const chaTop = mesh(new THREE.BoxGeometry(0.1, 0.012, 0.08), mat('#f2b43a'), { cast: false });
+  chaTop.position.set(0.17, 0.088, 0.1);
+  contents.add(chaTop);
+  // Trứng ốp la on the rice.
+  const white = mesh(new THREE.CylinderGeometry(0.075, 0.08, 0.012, 10), mat('#ffffff'), { cast: false });
+  white.position.set(-0.13, 0.135, 0.06);
+  white.rotation.x = -0.15;
+  contents.add(white);
+  const yolk = mesh(new THREE.SphereGeometry(0.032, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#ffb21e'), { cast: false });
+  yolk.position.set(-0.13, 0.14, 0.06);
+  contents.add(yolk);
+  // Đồ chua and cucumber slices along the rim.
+  for (let i = 0; i < 6; i++) {
+    const stick = mesh(new THREE.BoxGeometry(0.06, 0.012, 0.012), mat(i % 2 ? '#f08a24' : '#f4f0e0'), { cast: false });
+    stick.position.set(0.02 + range(rand, -0.03, 0.03), 0.05, 0.2 + range(rand, -0.02, 0.02));
+    stick.rotation.y = range(rand, -0.6, 0.6);
+    contents.add(stick);
+  }
+  for (let i = 0; i < 3; i++) {
+    const slice = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.012, 8), mat('#a8d878'), { cast: false });
+    slice.position.set(-0.26 + i * 0.04, 0.05 + i * 0.004, -0.1 + i * 0.05);
+    contents.add(slice);
+  }
+  const sauce = new THREE.Group();
+  soup(sauce, '#d9893a');
+  sauce.scale.setScalar(0.32);
+  sauce.position.copy(cup.position);
+  contents.add(sauce);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
 const DISH_BUILDERS = {
   pho: (rand) => noodleBowl(rand, '#d9a85b', '#3a6fb0'),
   bun: (rand) => noodleBowl(rand, '#d9542b', '#2e8b57'),
@@ -703,6 +818,8 @@ const DISH_BUILDERS = {
   'cao-lau': caoLau,
   'mi-quang': miQuang,
   'banh-mi': banhMi,
+  'hu-tieu': huTieu,
+  'com-tam': comTamSuon,
 };
 
 // Builds a dish model; every dish exposes `userData.contents`, hidden once
