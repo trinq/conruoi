@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] At least 1 NPC sprite visible sitting at the table with idle animation
-- [ ] Warning indicator (visual cue like exclamation mark or red zone) appears before a slap
-- [ ] Hand slap animation plays after the warning delay (~1-1.5 seconds)
-- [ ] Hit detection: if fly overlaps the slap zone when the hand comes down, a life is lost
-- [ ] Lives HUD shows remaining lives (starts at 3)
-- [ ] Brief invincibility period after being hit (i-frames with visual flashing)
-- [ ] Fly is knocked back or stunned briefly when hit
-- [ ] NPC targets the fly's current/recent position for the slap
+- [x] At least 1 NPC sprite visible sitting at the table with idle animation
+- [x] Warning indicator (visual cue like exclamation mark or red zone) appears before a slap
+- [x] Hand slap animation plays after the warning delay (~1-1.5 seconds)
+- [x] Hit detection: if fly overlaps the slap zone when the hand comes down, a life is lost
+- [x] Lives HUD shows remaining lives (starts at 3)
+- [x] Brief invincibility period after being hit (i-frames with visual flashing)
+- [x] Fly is knocked back or stunned briefly when hit
+- [x] NPC targets the fly's current/recent position for the slap
