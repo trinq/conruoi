@@ -284,6 +284,33 @@ body {
 
 /* ----- home screen ----- */
 
+/* Kỷ lục, chalked into the bottom corner of the menu. */
+.record {
+  justify-self: end;
+  margin-top: 4px;
+  font-size: 22px;
+  color: var(--chalk-dim);
+  transform: rotate(-3deg);
+  font-variant-numeric: tabular-nums;
+}
+
+.record b {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--chalk-yellow);
+}
+
+.board .best {
+  color: var(--chalk-dim);
+}
+
+.board .best.new {
+  color: var(--chalk-pink);
+  font-size: 26px;
+  animation: pop-in 0.4s ease-out 0.3s backwards;
+}
+
 .screen {
   position: absolute;
   inset: 0;
@@ -334,6 +361,160 @@ body {
 .howto span {
   font-size: 18px;
   color: var(--chalk-dim);
+}
+
+/* ----- journey map ----- */
+
+.journey {
+  width: min(860px, 100%);
+  grid-template-columns: auto minmax(240px, 1fr);
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.journey-info {
+  display: grid;
+  gap: 10px;
+}
+
+.journey-map {
+  height: min(68vh, 470px);
+  width: auto;
+  max-width: 100%;
+  overflow: visible;
+  font-family: var(--chalk-font);
+}
+
+.journey-map .land {
+  fill: rgba(243, 240, 230, 0.08);
+  stroke: var(--chalk-dim);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.journey-map .islet {
+  fill: var(--chalk-dim);
+}
+
+.journey-map .islands {
+  font-size: 9px;
+  fill: var(--chalk-dim);
+}
+
+.journey-map .route {
+  fill: none;
+  stroke: rgba(243, 240, 230, 0.45);
+  stroke-width: 1.6;
+  stroke-dasharray: 2 4;
+  stroke-linecap: round;
+}
+
+.journey-map .route.flown,
+.journey-map .route.flying {
+  stroke: var(--chalk-yellow);
+  stroke-width: 2.2;
+  stroke-dasharray: none;
+}
+
+.journey-map .stop text {
+  font-size: 12px;
+  fill: var(--chalk);
+  paint-order: stroke;
+  stroke: var(--board);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+.journey-map .stop .num {
+  fill: var(--chalk-dim);
+}
+
+.journey-map .ring {
+  fill: none;
+  stroke: none;
+}
+
+.journey-map .dot {
+  fill: var(--board);
+  stroke: var(--chalk);
+  stroke-width: 1.6;
+}
+
+.journey-map .done .dot {
+  fill: var(--sign-red);
+  stroke: var(--sign-yellow);
+}
+
+.journey-map .done text {
+  fill: var(--chalk-yellow);
+}
+
+.journey-map .tick {
+  fill: none;
+  stroke: var(--sign-yellow);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The next stop pulses until the fly lands on it. */
+.journey-map .next .ring {
+  stroke: var(--chalk-pink);
+  stroke-width: 1.4;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: stop-pulse 1.2s ease-out infinite;
+}
+
+.journey-map .next text {
+  fill: var(--chalk-pink);
+}
+
+@keyframes stop-pulse {
+  from {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.map-fly .wings ellipse {
+  fill: rgba(220, 240, 255, 0.75);
+  stroke: rgba(255, 255, 255, 0.9);
+  stroke-width: 0.6;
+}
+
+.map-fly .wings {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: wing-flap 0.12s linear infinite alternate;
+}
+
+@keyframes wing-flap {
+  to {
+    transform: scaleY(0.45);
+  }
+}
+
+.victory h2 {
+  font-family: var(--sign-font);
+  color: var(--sign-yellow);
+  -webkit-text-stroke: 1px var(--sign-red-dark);
+  text-shadow: 0 3px 0 var(--sign-red);
+}
+
+@media (max-width: 640px) {
+  .journey {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .journey-map {
+    height: min(46vh, 360px);
+  }
 }
 
 /* ----- HUD ----- */

@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Best score saved at game over and victory when beaten
-- [ ] Shown on the home screen; survives reload
-- [ ] Game works when storage is unavailable
-- [ ] e2e covers saving and showing after reload
+- [x] Best score saved at game over and victory when beaten
+- [x] Shown on the home screen; survives reload
+- [x] Game works when storage is unavailable
+- [x] e2e covers saving and showing after reload
