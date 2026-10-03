@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Every level declares region, time of day and weapon mix; the five regions follow the agreed route (Hà Nội, Huế, Hội An, hẻm Sài Gòn, chợ đêm Sài Gòn)
-- [ ] Dish catalogue with tiers high / medium / low / bonus (30 pts 2.2 s, 20 / 1.6 s, 10 / 1.0 s, 40 / 1.2 s); levels reference dishes by id
-- [ ] Lighting presets for sáng sớm, trưa, hoàng hôn, chiều, đêm selected from the level's time of day
-- [ ] All player-facing text comes from a single copy deck
-- [ ] Level check also validates: dishes exist, one dish per tier per level plus bonus, weapon schedule (tay only in 1–2, quạt nan from 3, vợt điện from 4), every level has region and time of day
-- [ ] `npm run test:e2e` drives the real game in Chromium: start, eat a dish (score rises by its points), lose a life in a strike zone, lose all lives, win a level, finish all five, IME keystroke moves the fly, no console errors
-- [ ] GitHub Actions runs the level check and the e2e test on every pull request
+- [x] Every level declares region, time of day and weapon mix; the five regions follow the agreed route (Hà Nội, Huế, Hội An, hẻm Sài Gòn, chợ đêm Sài Gòn)
+- [x] Dish catalogue with tiers high / medium / low / bonus (30 pts 2.2 s, 20 / 1.6 s, 10 / 1.0 s, 40 / 1.2 s); levels reference dishes by id
+- [x] Lighting presets for sáng sớm, trưa, hoàng hôn, chiều, đêm selected from the level's time of day
+- [x] All player-facing text comes from a single copy deck
+- [x] Level check also validates: dishes exist, one dish per tier per level plus bonus, weapon schedule (tay only in 1–2, quạt nan from 3, vợt điện from 4), every level has region and time of day
+- [x] `npm run test:e2e` drives the real game in Chromium: start, eat a dish (score rises by its points), lose a life in a strike zone, lose all lives, win a level, finish all five, IME keystroke moves the fly, no console errors
+- [x] GitHub Actions runs the level check and the e2e test on every pull request

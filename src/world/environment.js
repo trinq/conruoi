@@ -256,8 +256,10 @@ export function buildEnvironment(scene) {
   root.add(night);
 
   return {
-    setTheme(name) {
-      night.visible = name === 'night';
+    // Scenery per region arrives with the region tickets; for now every
+    // region shares this scene, with lanterns lit at night.
+    setRegion(region, timeOfDay) {
+      night.visible = timeOfDay === 'night';
     },
     update(timeMs) {
       for (const pad of water.userData.pads) {

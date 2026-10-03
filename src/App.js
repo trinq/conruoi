@@ -9,6 +9,7 @@ import { GameAudio } from './audio/GameAudio.js';
 import { UI } from './ui/ui.js';
 import { LEVELS } from './levels.js';
 import { MAX_LIVES, newGame } from './gameState.js';
+import { COPY } from './copy.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
@@ -51,8 +52,8 @@ export class App {
     this.round?.dispose();
     const level = LEVELS[levelIndex];
     this.round = new Round(this.stage.scene, level, levelIndex, { lives });
-    this.stage.setTheme(level.theme);
-    this.env.setTheme(level.theme);
+    this.stage.setTimeOfDay(level.timeOfDay);
+    this.env.setRegion(level.region, level.timeOfDay);
   }
 
   showMenu() {
@@ -82,7 +83,7 @@ export class App {
       .on('score', (score, food) => {
         this.totalScore += food.info.points;
         this.ui.setScore(score);
-        this.ui.popup(new THREE.Vector3(food.x, food.surfaceHeight + 0.9, food.z), `+${food.info.points} ${food.info.name}`);
+        this.ui.popup(new THREE.Vector3(food.x, food.surfaceHeight + 0.9, food.z), COPY.scorePopup(food.info));
       })
       .on('slap', () => {
         this.gameAudio.slap();
@@ -91,9 +92,9 @@ export class App {
       .on('hit', () => this.gameAudio.hurt())
       .on('lives', (lives) => this.ui.setLives(lives, { lost: true }))
       .on('won', () =>
-        this.endRound('Đủ điểm!', () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),
+        this.endRound(COPY.targetReached, () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),
       )
-      .on('lost', () => this.endRound('Hết mạng!', () => this.showGameOver({ levelIndex, totalScore: this.totalScore })));
+      .on('lost', () => this.endRound(COPY.outOfLives, () => this.showGameOver({ levelIndex, totalScore: this.totalScore })));
   }
 
   endRound(message, next) {

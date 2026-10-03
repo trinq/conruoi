@@ -18,7 +18,9 @@ let alertTexture = null;
 //
 // States: idle -> windup -> slap -> idle. Emits 'slap' (x, z) on impact.
 export class Npc {
-  constructor({ x, z }, danger, { tables, rand, getFly, surfaceAt, canAttack }) {
+  // `weapon` is 'hand', 'fan' or 'swatter'.
+  constructor({ x, z }, danger, { weapon, tables, rand, getFly, surfaceAt, canAttack }) {
+    this.weapon = weapon;
     this.x = x;
     this.z = z;
     this.danger = danger;

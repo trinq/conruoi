@@ -1,20 +1,20 @@
 import { dish } from '../world/models.js';
-import { FOOD_TYPES } from './foodTypes.js';
+import { DISHES } from './dishes.js';
 
 const RESPAWN_MS = 6000;
 
 // A dish on a table. Eating empties it; it is refilled a few seconds later.
+// `info` is the catalogue entry: name, tier, points and eating time.
 export class Food {
-  constructor(table, { type, dx, dz }, rand) {
-    this.type = type;
-    this.info = FOOD_TYPES[type];
+  constructor(table, dishId, { dx, dz }, rand) {
+    this.info = DISHES[dishId];
     this.x = table.x + dx;
     this.z = table.z + dz;
     this.surfaceHeight = table.height;
     this.ready = true;
     this.refillAt = 0;
     this.progress = 0; // eating progress 0..1, drawn as a bar
-    this.model = dish(type, rand);
+    this.model = dish(this.info.model, rand);
     this.model.position.set(this.x, table.height, this.z);
     this.model.rotation.y = rand() * Math.PI * 2;
     this.model.userData.food = this;

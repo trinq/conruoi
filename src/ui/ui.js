@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LEVELS } from '../levels.js';
+import { COPY, levelName } from '../copy.js';
 import { MAX_LIVES } from '../gameState.js';
 
 // Tiny DOM builder: el('p', { class: 'sub' }, 'text', child, ...).
@@ -29,15 +30,8 @@ function heart(full) {
 }
 
 function controls() {
-  const row = (keys, text) => [el('span', {}, ...keys.map((k) => el('kbd', {}, k))), el('span', {}, text)];
-  return el(
-    'div',
-    { class: 'controls' },
-    ...row(['W A S D', '↑ ↓ ← →'], 'Bay quanh quán'),
-    ...row(['Click món ăn'], 'Đậu xuống ăn lấy điểm'),
-    ...row(['Vùng đỏ'], 'Tay sắp đập, bay đi ngay!'),
-    ...row(['M'], 'Tắt / bật tiếng'),
-  );
+  const row = ([keys, text]) => [el('span', {}, ...keys.map((k) => el('kbd', {}, k))), el('span', {}, text)];
+  return el('div', { class: 'controls' }, ...COPY.controls.flatMap(row));
 }
 
 // All HTML on top of the 3D canvas: HUD, world-anchored bars and popups,
@@ -79,7 +73,7 @@ export class UI {
   }
 
   setMuted(muted) {
-    this.muteLabel.textContent = muted ? 'Đã tắt tiếng (M)' : '';
+    this.muteLabel.textContent = muted ? COPY.muted : '';
   }
 
   // ----- HUD -----
@@ -88,13 +82,13 @@ export class UI {
     this.clearWorld();
     this.scoreText = el('span');
     this.scoreFill = el('div');
-    this.hearts = el('div', { class: 'pill hearts', 'aria-label': 'Mạng' });
+    this.hearts = el('div', { class: 'pill hearts', 'aria-label': COPY.hud.lives });
     this.hudLayer.replaceChildren(
       el(
         'div',
         { class: 'hud' },
-        el('div', { class: 'pill' }, el('span', { class: 'label' }, 'Điểm'), this.scoreText, el('div', { class: 'score-bar' }, this.scoreFill)),
-        el('div', { class: 'pill' }, el('span', { class: 'label' }, `Màn ${levelIndex + 1}/${LEVELS.length}`), level.name),
+        el('div', { class: 'pill' }, el('span', { class: 'label' }, COPY.hud.score), this.scoreText, el('div', { class: 'score-bar' }, this.scoreFill)),
+        el('div', { class: 'pill' }, el('span', { class: 'label' }, COPY.hud.level(levelIndex)), levelName(levelIndex)),
         this.hearts,
       ),
     );
@@ -196,12 +190,12 @@ export class UI {
   }
 
   showMenu({ onPlay, audioLocked }) {
-    const hint = audioLocked ? el('p', { class: 'hint' }, 'Click hoặc bấm phím bất kỳ để bật âm thanh') : null;
+    const hint = audioLocked ? el('p', { class: 'hint' }, COPY.audioHint) : null;
     this.showScreen(
-      el('h1', {}, 'Con Ruồi'),
-      el('p', { class: 'sub' }, 'Làm con ruồi ở quán ăn vỉa hè: ăn phở, bún, cơm, chè và né những bàn tay!'),
+      el('h1', {}, COPY.title),
+      el('p', { class: 'sub' }, COPY.tagline),
       controls(),
-      el('div', { class: 'buttons' }, this.button('Chơi', onPlay)),
+      el('div', { class: 'buttons' }, this.button(COPY.play, onPlay)),
       hint,
     );
     this.menuHint = hint;
@@ -215,32 +209,32 @@ export class UI {
     const last = levelIndex >= LEVELS.length - 1;
     if (last) {
       this.showScreen(
-        el('h1', {}, 'Chiến thắng!'),
-        el('p', { class: 'sub' }, `Ăn sạch cả ${LEVELS.length} quán!`),
-        el('div', { class: 'stats' }, el('span', {}, 'Tổng điểm ', el('b', {}, String(totalScore)))),
-        el('div', { class: 'buttons' }, this.button('Chơi Lại', onRestart), this.button('Menu', onMenu, true)),
+        el('h1', {}, COPY.victory),
+        el('p', { class: 'sub' }, COPY.victorySub),
+        el('div', { class: 'stats' }, el('span', {}, COPY.totalScore, el('b', {}, String(totalScore)))),
+        el('div', { class: 'buttons' }, this.button(COPY.retry, onRestart), this.button(COPY.home, onMenu, true)),
       );
       return;
     }
     this.showScreen(
-      el('h2', {}, `Xong màn ${levelIndex + 1}!`),
-      el('p', { class: 'sub' }, `Tiếp theo: ${LEVELS[levelIndex + 1].name}`),
+      el('h2', {}, COPY.levelDone(levelIndex)),
+      el('p', { class: 'sub' }, COPY.nextLevel(levelIndex)),
       el(
         'div',
         { class: 'stats' },
-        el('span', {}, 'Điểm màn này ', el('b', {}, String(levelScore))),
-        el('span', {}, `Tổng điểm ${totalScore} · Còn ${lives} mạng`),
+        el('span', {}, COPY.levelScore, el('b', {}, String(levelScore))),
+        el('span', {}, COPY.levelSummary(totalScore, lives)),
       ),
-      el('div', { class: 'buttons' }, this.button('Tiếp Tục', onNext)),
+      el('div', { class: 'buttons' }, this.button(COPY.continue, onNext)),
     );
   }
 
   showGameOver({ totalScore, levelIndex }, { onRestart, onMenu }) {
     this.showScreen(
-      el('h2', {}, 'Bị đập rồi!'),
-      el('p', { class: 'sub' }, `Dừng ở màn ${levelIndex + 1} / ${LEVELS.length}: ${LEVELS[levelIndex].name}`),
-      el('div', { class: 'stats' }, el('span', {}, 'Điểm ', el('b', {}, String(totalScore)))),
-      el('div', { class: 'buttons' }, this.button('Chơi Lại', onRestart), this.button('Menu', onMenu, true)),
+      el('h2', {}, COPY.gameOver),
+      el('p', { class: 'sub' }, COPY.gameOverSub(levelIndex)),
+      el('div', { class: 'stats' }, el('span', {}, COPY.score, el('b', {}, String(totalScore)))),
+      el('div', { class: 'buttons' }, this.button(COPY.retry, onRestart), this.button(COPY.home, onMenu, true)),
     );
   }
 }

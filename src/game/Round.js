@@ -7,6 +7,7 @@ import { Food } from './Food.js';
 import { Fly } from './Fly.js';
 import { Npc } from './Npc.js';
 import { inSlapZone } from './slapZone.js';
+import { dishFor } from '../regions.js';
 
 const GROUND = { height: 0.04 }; // top of the packed-earth clearing
 const BOUNDS_INSET = 0.4;
@@ -34,7 +35,7 @@ export class Round {
     for (const [i, t] of this.tables.entries()) {
       this.group.add(t.model);
       for (const f of level.tables[i].foods) {
-        const food = new Food(t, f, rand);
+        const food = new Food(t, dishFor(level.region, f), f, rand);
         this.foods.push(food);
         this.group.add(food.model);
       }
@@ -52,8 +53,9 @@ export class Round {
     const { danger } = level;
     const surfaceAt = (x, z) => this.surfaceAt(x, z);
     const canAttack = () => this.npcs.filter((n) => n.isAttacking()).length < danger.maxSlaps;
-    this.npcs = level.npcs.map((spec) => {
-      const npc = new Npc(spec, danger, { tables: this.tables, rand, getFly: () => this.fly, surfaceAt, canAttack });
+    this.npcs = level.npcs.map((spec, i) => {
+      const weapon = level.weapons[i % level.weapons.length];
+      const npc = new Npc(spec, danger, { weapon, tables: this.tables, rand, getFly: () => this.fly, surfaceAt, canAttack });
       npc.events.on('slap', (x, z) => this.onSlap(x, z));
       this.group.add(...npc.objects);
       return npc;
