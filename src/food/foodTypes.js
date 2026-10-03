@@ -6,6 +6,8 @@ export const FOOD_TYPES = {
   pho: { name: 'Phở', points: 30, eatMs: 2200 },
   bun: { name: 'Bún', points: 20, eatMs: 1600 },
   com: { name: 'Cơm', points: 10, eatMs: 1000 },
+  // Bonus dessert in later levels: lots of points for a quick bite.
+  che: { name: 'Chè', points: 40, eatMs: 1200, bonus: true },
 };
 
 const PALETTE = {
@@ -23,6 +25,9 @@ const PALETTE = {
   w: '#ffffff', // rice
   p: '#e8e8e8', // plate
   P: '#a9b4bf', // plate rim
+  i: '#cfe9ff', // crushed ice
+  j: '#5fbf5a', // pandan jelly
+  e: '#8e2f2f', // red beans
 };
 
 const PHO = [
@@ -67,7 +72,28 @@ const COM = [
   '................',
 ];
 
+// Chè ba màu: glass of red beans, green jelly and mung beans under ice.
+const CHE = [
+  '................',
+  '..........c.....',
+  '.........c......',
+  '....oooooooo....',
+  '....owwiwwwo....',
+  '....oiwwiwio....',
+  '....oyyyyyyo....',
+  '....oyyyyyyo....',
+  '.....ojjjjo.....',
+  '.....ojjjjo.....',
+  '.....oeeeeo.....',
+  '.....oeeeeo.....',
+  '......oooo......',
+  '................',
+  '................',
+  '................',
+];
+
 export function createFoodTextures(scene) {
+  createPixelTexture(scene, 'food-che', [CHE], PALETTE);
   createPixelTexture(scene, 'food-pho', [PHO], PALETTE);
   createPixelTexture(scene, 'food-bun', [BUN], PALETTE);
   createPixelTexture(scene, 'food-com', [COM], PALETTE);

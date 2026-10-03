@@ -21,14 +21,13 @@ export class GameScene extends Phaser.Scene {
     const { levelIndex, lives, totalScore } = { ...newGame(), ...data };
     const { width, height } = this.scale;
     this.leaving = false;
-    drawFloor(this);
-
     this.levelIndex = levelIndex;
     this.level = LEVELS[levelIndex];
     this.score = 0;
     this.totalScore = totalScore;
     this.lives = lives;
     this.over = false;
+    drawFloor(this, this.level.theme);
 
     this.tables = [];
     this.foods = [];
@@ -54,13 +53,16 @@ export class GameScene extends Phaser.Scene {
     this.fly.events.on('eat', (food) => this.addScore(food));
 
     const surfaceAt = (x, y) => this.surfaceAt(x, y);
+    const { danger } = this.level;
+    const canAttack = () => this.npcs.filter((n) => n.isAttacking()).length < danger.maxSlaps;
     this.npcs = this.level.npcs.map((n) => {
-      const npc = new Npc(this, n, this.level.danger, { getFly: () => this.fly, surfaceAt });
+      const npc = new Npc(this, n, danger, { getFly: () => this.fly, surfaceAt, canAttack });
       npc.events.on('slap', (x, y) => this.onSlap(x, y));
       return npc;
     });
 
     this.hud = new Hud(this);
+    this.hud.setLevel(`Màn ${levelIndex + 1}/${LEVELS.length} · ${this.level.name}`);
     this.hud.setScore(this.score, this.level.targetScore);
     this.hud.setLives(this.lives, MAX_LIVES);
 

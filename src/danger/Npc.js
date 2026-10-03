@@ -15,13 +15,15 @@ const HAND_DEPTH = 9500;
 //
 // States: idle -> windup -> slap -> idle. Emits 'slap' (x, y) on impact.
 export class Npc {
-  constructor(scene, { x, y }, danger, { getFly, surfaceAt }) {
+  // `canAttack()` lets the scene cap how many diners slap at once.
+  constructor(scene, { x, y }, danger, { getFly, surfaceAt, canAttack = () => true }) {
     this.scene = scene;
     this.x = x;
     this.y = y;
     this.danger = danger;
     this.getFly = getFly;
     this.surfaceAt = surfaceAt;
+    this.canAttack = canAttack;
     this.state = 'idle';
     this.cooldown = this.nextCooldown();
     this.events = new Phaser.Events.EventEmitter();
@@ -55,7 +57,9 @@ export class Npc {
       this.cooldown -= delta;
       const fly = this.getFly();
       const inReach = Phaser.Math.Distance.Between(this.x, this.y, fly.x, fly.y) <= this.danger.reach;
-      if (this.cooldown <= 0 && inReach && fly.canBeTargeted(time)) this.startWindup(fly);
+      if (this.cooldown <= 0 && inReach && fly.canBeTargeted(time) && this.canAttack()) {
+        this.startWindup(fly);
+      }
     } else if (this.state === 'windup') {
       this.elapsed += delta;
       this.drawWindup(time, Math.min(1, this.elapsed / this.danger.windupMs));
@@ -137,6 +141,10 @@ export class Npc {
         this.cooldown = this.nextCooldown();
       },
     });
+  }
+
+  isAttacking() {
+    return this.state === 'windup' || this.state === 'slap';
   }
 
   // Freeze the diner (used when the round ends).

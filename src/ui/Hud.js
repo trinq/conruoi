@@ -5,6 +5,15 @@ export class Hud {
     this.scene = scene;
     this.scoreText = scene.add.text(16, 12, '', STYLE).setDepth(20000).setScrollFactor(0);
     this.hearts = [];
+    this.levelText = scene.add
+      .text(scene.scale.width / 2, 12, '', { ...STYLE, fontSize: '24px', color: '#ffe8a8' })
+      .setOrigin(0.5, 0)
+      .setDepth(20000)
+      .setScrollFactor(0);
+  }
+
+  setLevel(text) {
+    this.levelText.setText(text);
   }
 
   // Hearts in the top-right corner: full for remaining lives, empty for lost.
