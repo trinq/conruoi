@@ -3,11 +3,14 @@ import { Fly } from '../fly/Fly.js';
 import { Table } from '../food/Table.js';
 import { Food } from '../food/Food.js';
 import { Hud } from '../ui/Hud.js';
+import { Npc } from '../danger/Npc.js';
+import { inSlapZone } from '../danger/slapZone.js';
 import { LEVELS } from '../levels.js';
 
 const TILE_W = 64;
 const TILE_H = 32;
 const COLORS = [0xd9a35b, 0xc98f48];
+const MAX_LIVES = 3;
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -41,6 +44,8 @@ export class GameScene extends Phaser.Scene {
 
     this.level = LEVELS[0];
     this.score = 0;
+    this.lives = MAX_LIVES;
+    this.over = false;
 
     this.tables = [];
     this.foods = [];
@@ -65,8 +70,33 @@ export class GameScene extends Phaser.Scene {
     }
     this.fly.events.on('eat', (food) => this.addScore(food));
 
+    const surfaceAt = (x, y) => this.surfaceAt(x, y);
+    this.npcs = this.level.npcs.map((n) => {
+      const npc = new Npc(this, n, this.level.danger, { getFly: () => this.fly, surfaceAt });
+      npc.events.on('slap', (x, y) => this.onSlap(x, y));
+      return npc;
+    });
+
     this.hud = new Hud(this);
     this.hud.setScore(this.score, this.level.targetScore);
+    this.hud.setLives(this.lives, MAX_LIVES);
+  }
+
+  onSlap(x, y) {
+    if (this.over) return;
+    const fly = this.fly;
+    if (!inSlapZone(fly.x, fly.y, x, y) || fly.isInvincible(this.time.now)) return;
+    fly.hit(x, y);
+    this.lives -= 1;
+    this.hud.setLives(this.lives, MAX_LIVES);
+    if (this.lives <= 0) this.endRound();
+  }
+
+  // Placeholder until the game over scene exists (ticket 05).
+  endRound() {
+    this.over = true;
+    for (const npc of this.npcs) npc.stop();
+    this.hud.banner('Hết mạng!');
   }
 
   addScore(food) {
@@ -80,6 +110,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time, delta) {
+    if (this.over) return;
     this.fly.update(time, delta, (x, y) => this.surfaceAt(x, y));
+    for (const npc of this.npcs) npc.update(time, delta);
   }
 }

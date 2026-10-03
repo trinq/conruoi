@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { createFlyTexture } from '../fly/flyTexture.js';
 import { createFoodTextures } from '../food/foodTypes.js';
+import { createDangerTextures } from '../danger/npcTextures.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -14,6 +15,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     createFlyTexture(this);
     createFoodTextures(this);
+    createDangerTextures(this);
     this.anims.create({
       key: 'fly-idle',
       frames: this.anims.generateFrameNumbers('fly', { frames: [0, 1] }),
@@ -24,6 +26,13 @@ export class BootScene extends Phaser.Scene {
       key: 'fly-move',
       frames: this.anims.generateFrameNumbers('fly', { frames: [0, 1] }),
       frameRate: 24,
+      repeat: -1,
+    });
+
+    this.anims.create({
+      key: 'npc-idle',
+      frames: this.anims.generateFrameNumbers('npc', { frames: [0, 0, 1, 0, 1, 0, 0] }),
+      frameRate: 3,
       repeat: -1,
     });
 
