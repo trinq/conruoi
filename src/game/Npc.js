@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { person, slapHand } from '../world/models.js';
+import { person, slapHand, pickArchetype } from '../world/models.js';
 import { textTexture } from '../world/lowpoly.js';
 import { Emitter } from './Emitter.js';
 import { SLAP_RADIUS } from './slapZone.js';
@@ -19,7 +19,7 @@ let alertTexture = null;
 // States: idle -> windup -> slap -> idle. Emits 'slap' (x, z) on impact.
 export class Npc {
   // `weapon` is 'hand', 'fan' or 'swatter'.
-  constructor({ x, z }, danger, { weapon, tables, rand, getFly, surfaceAt, canAttack }) {
+  constructor({ x, z }, danger, { weapon, south = false, tables, rand, getFly, surfaceAt, canAttack }) {
     this.weapon = weapon;
     this.x = x;
     this.z = z;
@@ -34,7 +34,7 @@ export class Npc {
     this.phase = rand() * 10;
     this.events = new Emitter();
 
-    this.model = person(rand);
+    this.model = person(rand, pickArchetype(rand, { south }));
     this.model.position.set(x, 0, z);
     // Face the closest point of the nearest table.
     let best = null;

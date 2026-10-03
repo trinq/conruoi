@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] At least six archetypes with distinct clothing and headwear
-- [ ] Regional weighting (e.g. áo bà ba more common in the south)
-- [ ] Idle chopstick animation and wind-up pose still work
+- [x] At least six archetypes with distinct clothing and headwear
+- [x] Regional weighting (e.g. áo bà ba more common in the south)
+- [x] Idle chopstick animation and wind-up pose still work

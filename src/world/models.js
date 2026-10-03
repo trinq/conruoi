@@ -498,54 +498,187 @@ export function dish(type, rand) {
 
 // ----- characters ----------------------------------------------------------
 
-const SHIRTS = ['#4a7bd0', '#e07a3f', '#5aa65a', '#c94f7c', '#f2c94c', '#8a6fd1'];
+const SKINS = ['#f1c27d', '#e0ac69', '#f6d0a4', '#d9a066'];
 
-// A diner sitting on a stool, facing +z. Exposes the right arm pivot for the
-// eating animation and the wind-up pose.
-export function person(rand) {
+// Who sits at the stalls. Each archetype picks its clothes; `south` weights
+// how common it is in the southern regions instead of the default weight.
+const ARCHETYPES = {
+  // Chú xe ôm: helmet still on, windbreaker, long trousers.
+  xeOm: {
+    weight: 2,
+    south: 2,
+    outfit: (rand) => ({
+      shirt: pick(rand, ['#2f4a7a', '#55624a', '#7a5a3a']),
+      pants: '#3b3b44',
+      hair: 'short',
+      hat: 'helmet',
+      helmet: pick(rand, ['#ffd23f', '#e2483d', '#2f6fdf', '#ffffff', '#f08ac0']),
+    }),
+  },
+  // Cô văn phòng: long hair, blouse, dark trousers.
+  vanPhong: {
+    weight: 2,
+    south: 1.5,
+    outfit: (rand) => ({
+      shirt: pick(rand, ['#ffffff', '#f6d6e0', '#d6e8f6', '#f3e7c8']),
+      pants: pick(rand, ['#2b2b33', '#3a3550']),
+      hair: 'long',
+    }),
+  },
+  // Học sinh: white shirt, navy trousers and the red Young Pioneer scarf.
+  hocSinh: {
+    weight: 1.5,
+    south: 1.5,
+    outfit: () => ({ shirt: '#f7f7f2', pants: '#1f2f5c', hair: 'short', scarf: true }),
+  },
+  // Ông áo ba lỗ: white vest, bare arms, shorts, balding.
+  ongBaLo: {
+    weight: 2,
+    south: 2,
+    outfit: () => ({ shirt: '#f2f2ec', sleeve: 'skin', pants: '#3f5a7a', shorts: true, hair: 'bald' }),
+  },
+  // Cô áo bà ba: buttoned blouse, black silk trousers, hair in a bun.
+  aoBaBa: {
+    weight: 0.5,
+    south: 3,
+    outfit: (rand) => ({
+      shirt: pick(rand, ['#c9a27a', '#d9b8d0', '#9fbfa0', '#e8d2a8']),
+      pants: '#1b1b1f',
+      hair: 'bun',
+      buttons: true,
+      hat: rand() < 0.4 ? 'nonla' : null,
+    }),
+  },
+  // Bác đội nón lá.
+  bacNonLa: {
+    weight: 1.5,
+    south: 1,
+    outfit: (rand) => ({ shirt: pick(rand, ['#6b6f4a', '#7a5a3a', '#4f6a6a']), pants: '#3a3a30', hair: 'short', hat: 'nonla' }),
+  },
+};
+
+export const ARCHETYPE_NAMES = Object.keys(ARCHETYPES);
+
+export function pickArchetype(rand, { south = false } = {}) {
+  const entries = Object.entries(ARCHETYPES);
+  const total = entries.reduce((sum, [, a]) => sum + (south ? a.south : a.weight), 0);
+  let r = rand() * total;
+  for (const [name, a] of entries) {
+    r -= south ? a.south : a.weight;
+    if (r <= 0) return name;
+  }
+  return entries[0][0];
+}
+
+function hair(style, colour) {
   const g = new THREE.Group();
-  const shirt = pick(rand, SHIRTS);
-  const skin = pick(rand, ['#f1c27d', '#e0ac69', '#f6d0a4']);
-  g.add(stool());
+  const m = mat(colour);
+  if (style === 'bald') {
+    // A fringe around the back of the head only.
+    const fringe = mesh(new THREE.TorusGeometry(0.17, 0.05, 4, 10, Math.PI), m);
+    fringe.rotation.set(Math.PI / 2, 0, Math.PI);
+    fringe.position.set(0, -0.02, -0.03);
+    g.add(fringe);
+    return g;
+  }
+  const cap = mesh(new THREE.SphereGeometry(0.22, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), m);
+  cap.position.set(0, 0.03, -0.02);
+  cap.rotation.x = -0.25;
+  g.add(cap);
+  if (style === 'long') {
+    const back = mesh(new THREE.BoxGeometry(0.36, 0.5, 0.12), m);
+    back.position.set(0, -0.2, -0.15);
+    g.add(back);
+  }
+  if (style === 'bun') {
+    const bun = mesh(new THREE.SphereGeometry(0.09, 6, 5), m);
+    bun.position.set(0, 0.05, -0.22);
+    g.add(bun);
+  }
+  return g;
+}
 
-  const pants = mat(pick(rand, ['#2f3e5c', '#3b3b44', '#5b4636']));
+// A diner sitting on a stool, facing +z, dressed as `archetype`. Exposes
+// the head and arm pivots for the eating animation and the wind-up pose,
+// plus the skin and sleeve colours for the slapping hand.
+export function person(rand, archetype = pickArchetype(rand)) {
+  const outfit = ARCHETYPES[archetype].outfit(rand);
+  const g = new THREE.Group();
+  const skin = pick(rand, SKINS);
+  const shirt = outfit.shirt;
+  const sleeve = outfit.sleeve === 'skin' ? skin : shirt;
+  g.add(stool(rand() < 0.5 ? '#e2483d' : '#2f6fdf'));
+
+  const pants = mat(outfit.pants);
   const thigh = mesh(new THREE.BoxGeometry(0.36, 0.14, 0.42), pants);
   thigh.position.set(0, 0.5, 0.15);
   g.add(thigh);
-  const shin = mesh(new THREE.BoxGeometry(0.32, 0.44, 0.14), pants);
+  // Shorts stop at the knee and show bare shins.
+  const shin = mesh(new THREE.BoxGeometry(0.32, 0.44, 0.14), outfit.shorts ? mat(skin) : pants);
   shin.position.set(0, 0.24, 0.34);
   g.add(shin);
+  for (const x of [-0.09, 0.09]) {
+    const sandal = mesh(new THREE.BoxGeometry(0.12, 0.04, 0.22), mat('#3a2a20'));
+    sandal.position.set(x, 0.02, 0.38);
+    g.add(sandal);
+  }
 
   const torso = mesh(new THREE.BoxGeometry(0.48, 0.52, 0.3), mat(shirt));
   torso.position.y = 0.84;
   g.add(torso);
+  if (outfit.sleeve === 'skin') {
+    // Vest straps leave the shoulders bare.
+    for (const x of [-0.19, 0.19]) {
+      const shoulder = mesh(new THREE.BoxGeometry(0.1, 0.1, 0.3), mat(skin));
+      shoulder.position.set(x, 1.06, 0);
+      g.add(shoulder);
+    }
+  }
+  if (outfit.buttons) {
+    for (let i = 0; i < 4; i++) {
+      const b = mesh(new THREE.SphereGeometry(0.018, 5, 4), mat('#f4efe2'), { cast: false });
+      b.position.set(0.06, 1.0 - i * 0.1, 0.155);
+      g.add(b);
+    }
+  }
+  if (outfit.scarf) {
+    const scarf = mesh(new THREE.BoxGeometry(0.3, 0.06, 0.32), mat('#d9261c'));
+    scarf.position.set(0, 1.08, 0.01);
+    g.add(scarf);
+    const knot = mesh(new THREE.BoxGeometry(0.08, 0.16, 0.04), mat('#d9261c'));
+    knot.position.set(0, 0.98, 0.17);
+    knot.rotation.z = 0.2;
+    g.add(knot);
+  }
 
   const head = new THREE.Group();
   head.position.y = 1.28;
-  const face = mesh(new THREE.IcosahedronGeometry(0.21, 1), mat(skin));
-  head.add(face);
+  head.add(mesh(new THREE.IcosahedronGeometry(0.21, 1), mat(skin)));
   for (const x of [-0.07, 0.07]) {
     const eye = mesh(new THREE.BoxGeometry(0.04, 0.05, 0.02), mat('#2b2b2b'), { cast: false });
     eye.position.set(x, 0.02, 0.19);
     head.add(eye);
   }
-  if (rand() < 0.5) {
-    // Nón lá.
+  head.add(hair(outfit.hair, pick(rand, ['#1d1714', '#2b211c', '#3a2c22'])));
+  if (outfit.hat === 'nonla') {
     const hat = mesh(new THREE.ConeGeometry(0.4, 0.24, 10), mat('#e8d08a'));
     hat.position.y = 0.2;
     head.add(hat);
-  } else {
-    const hair = mesh(new THREE.SphereGeometry(0.22, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#2b211c'));
-    hair.position.set(0, 0.03, -0.02);
-    hair.rotation.x = -0.25;
-    head.add(hair);
+  } else if (outfit.hat === 'helmet') {
+    const shell = mesh(new THREE.SphereGeometry(0.25, 8, 5, 0, Math.PI * 2, 0, Math.PI / 1.9), mat(outfit.helmet, { roughness: 0.35 }));
+    shell.position.y = 0.04;
+    head.add(shell);
+    const strap = mesh(new THREE.TorusGeometry(0.2, 0.012, 3, 10, Math.PI), mat('#222'), { cast: false });
+    strap.position.y = -0.02;
+    strap.rotation.set(0, Math.PI / 2, Math.PI);
+    head.add(strap);
   }
   g.add(head);
 
   const arm = (side) => {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.3, 1.04, 0);
-    const upper = mesh(new THREE.BoxGeometry(0.12, 0.42, 0.12), mat(shirt));
+    const upper = mesh(new THREE.BoxGeometry(0.12, 0.42, 0.12), mat(sleeve));
     upper.position.y = -0.2;
     pivot.add(upper);
     const hand = mesh(new THREE.BoxGeometry(0.11, 0.11, 0.11), mat(skin));
@@ -565,7 +698,7 @@ export function person(rand) {
   chopsticks.position.set(0, -0.48, 0.15);
   rightArm.add(chopsticks);
 
-  g.userData = { head, leftArm, rightArm, skin, shirt };
+  g.userData = { head, leftArm, rightArm, skin, shirt: sleeve, archetype };
   return g;
 }
 
