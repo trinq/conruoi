@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { isoDirection } from './isoDirection.js';
+import { MoveKeys } from './moveKeys.js';
 
 const SPEED = 240; // px/s at full speed
 const ACCEL = 10; // how fast velocity catches up to input (1/s)
@@ -47,7 +48,7 @@ export class Fly {
     this.sprite = scene.add.sprite(x, y - HOVER_HEIGHT, 'fly', 0).setScale(SCALE);
     this.sprite.play('fly-idle');
 
-    this.keys = scene.input.keyboard.addKeys('W,A,S,D');
+    this.keys = new MoveKeys(scene);
   }
 
   landOn(food) {
@@ -91,12 +92,7 @@ export class Fly {
   // `surfaceAt(x, y)` returns the table under a ground point, or null.
   update(time, delta, surfaceAt = () => null) {
     const dt = delta / 1000;
-    const dir = isoDirection({
-      up: this.keys.W.isDown,
-      down: this.keys.S.isDown,
-      left: this.keys.A.isDown,
-      right: this.keys.D.isDown,
-    });
+    const dir = isoDirection(this.keys.state());
     const stunned = this.state === 'stunned';
     const hasInput = !stunned && (dir.x !== 0 || dir.y !== 0);
     if (hasInput && this.state !== 'flying') this.cancelEating();
