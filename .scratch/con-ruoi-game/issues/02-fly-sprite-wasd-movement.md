@@ -6,9 +6,9 @@
 
 **Status:** ready-for-agent
 
-- [ ] Pixel art fly sprite created (or placeholder) with at least idle/flying animation frames
-- [ ] WASD input moves the fly in isometric-mapped directions
-- [ ] Fly movement is smooth with appropriate speed
-- [ ] Fly is constrained within the game scene boundaries
-- [ ] Fly has depth sorting so it appears correctly in the isometric space
-- [ ] Fly sprite has a visible shadow or indicator showing its position on the ground plane
+- [x] Pixel art fly sprite created (or placeholder) with at least idle/flying animation frames
+- [x] WASD input moves the fly in isometric-mapped directions
+- [x] Fly movement is smooth with appropriate speed
+- [x] Fly is constrained within the game scene boundaries
+- [x] Fly has depth sorting so it appears correctly in the isometric space
+- [x] Fly sprite has a visible shadow or indicator showing its position on the ground plane
