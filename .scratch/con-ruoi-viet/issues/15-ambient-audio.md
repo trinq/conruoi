@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Ambient layers generated in code and looped seamlessly
-- [ ] Mix differs by region (busier in Sài Gòn and the night market)
-- [ ] Starts after unlock, stops on menus as designed, respects mute and the menu sound toggle
+- [x] Ambient layers generated in code and looped seamlessly
+- [x] Mix differs by region (busier in Sài Gòn and the night market)
+- [x] Starts after unlock, stops on menus as designed, respects mute and the menu sound toggle

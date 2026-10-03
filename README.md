@@ -31,7 +31,7 @@ Code layout:
 - `src/world/scenes/`: one street scene per region (Hà Nội, Huế, Hội An, the Sài Gòn alley and night market), built from the shared Vietnamese street kit in `src/world/kit.js`
 - `src/game/`: gameplay (`Round.js` runs one level; `Fly.js`, `Npc.js`, `Food.js`, `Table.js`)
 - `src/ui/`: HTML HUD, menus and result boards over the canvas, and the S-shaped journey map shown between levels (`journeyMap.js`)
-- `src/audio/`: synthesized sound effects and the Web Audio player
+- `src/audio/`: synthesized sound effects, the street ambience mixed per region (`Ambience.js`) and the Web Audio player
 - `src/regions.js`: the five stops of the trip and the dishes each one serves
 - `src/game/dishes.js`: dish catalogue and score tiers
 - `src/bestScore.js`: the best total score ("Kỷ lục"), kept in localStorage when it is available
