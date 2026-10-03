@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { createFlyTexture } from '../fly/flyTexture.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -10,6 +11,20 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    createFlyTexture(this);
+    this.anims.create({
+      key: 'fly-idle',
+      frames: this.anims.generateFrameNumbers('fly', { frames: [0, 1] }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'fly-move',
+      frames: this.anims.generateFrameNumbers('fly', { frames: [0, 1] }),
+      frameRate: 24,
+      repeat: -1,
+    });
+
     this.scene.start('GameScene');
   }
 }
