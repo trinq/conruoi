@@ -1,11 +1,4 @@
-const STYLE = {
-  fontFamily: 'monospace',
-  fontSize: '22px',
-  fontStyle: 'bold',
-  color: '#fff6d5',
-  stroke: '#3b2412',
-  strokeThickness: 5,
-};
+import { TEXT_STYLE as STYLE } from './style.js';
 
 export class Hud {
   constructor(scene) {
@@ -36,7 +29,7 @@ export class Hud {
   banner(text) {
     const { width, height } = this.scene.scale;
     this.scene.add
-      .text(width / 2, height / 2, text, { ...STYLE, fontSize: '48px', strokeThickness: 8 })
+      .text(width / 2, height / 2, text, { ...STYLE, fontSize: '64px', strokeThickness: 8 })
       .setOrigin(0.5)
       .setDepth(20001)
       .setScrollFactor(0);
@@ -49,7 +42,7 @@ export class Hud {
   // Floating "+N" popup that drifts up and fades out.
   popup(x, y, text) {
     const t = this.scene.add
-      .text(x, y, text, { ...STYLE, fontSize: '18px', color: '#ffe066' })
+      .text(x, y, text, { ...STYLE, fontSize: '24px', color: '#ffe066' })
       .setOrigin(0.5)
       .setDepth(20000);
     this.scene.tweens.add({

@@ -31,9 +31,8 @@ export class Npc {
 
     this.alert = scene.add
       .text(x, y - 24 * SCALE - 10, '!', {
-        fontFamily: 'monospace',
-        fontSize: '32px',
-        fontStyle: 'bold',
+        fontFamily: 'VT323, monospace',
+        fontSize: '44px',
         color: '#ff3b30',
         stroke: '#ffffff',
         strokeThickness: 5,

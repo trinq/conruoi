@@ -6,45 +6,28 @@ import { Hud } from '../ui/Hud.js';
 import { Npc } from '../danger/Npc.js';
 import { inSlapZone } from '../danger/slapZone.js';
 import { LEVELS } from '../levels.js';
+import { drawFloor } from '../ui/floor.js';
+import { fadeIn, fadeTo } from '../ui/transition.js';
+import { MAX_LIVES, newGame } from '../gameState.js';
 
-const TILE_W = 64;
-const TILE_H = 32;
-const COLORS = [0xd9a35b, 0xc98f48];
-const MAX_LIVES = 3;
+const END_DELAY_MS = 900; // let the final hit / last bite play out before fading
 
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('GameScene');
   }
 
-  create() {
+  create(data) {
+    const { levelIndex, lives, totalScore } = { ...newGame(), ...data };
     const { width, height } = this.scale;
-    this.cameras.main.setBackgroundColor('#f2d9a0');
+    this.leaving = false;
+    drawFloor(this);
 
-    // Checkerboard of isometric diamond tiles covering the screen.
-    const g = this.add.graphics().setDepth(-10000);
-    const n = Math.ceil(width / TILE_W + height / TILE_H) + 2;
-    for (let i = -n; i < 2 * n; i++) {
-      for (let j = -n; j < 2 * n; j++) {
-        const cx = width / 2 + (i - j) * (TILE_W / 2);
-        const cy = (i + j) * (TILE_H / 2);
-        if (cx < -TILE_W || cx > width + TILE_W || cy < -TILE_H || cy > height + TILE_H) continue;
-        g.fillStyle(COLORS[(i + j) & 1], 1);
-        g.fillPoints(
-          [
-            { x: cx, y: cy - TILE_H / 2 },
-            { x: cx + TILE_W / 2, y: cy },
-            { x: cx, y: cy + TILE_H / 2 },
-            { x: cx - TILE_W / 2, y: cy },
-          ],
-          true,
-        );
-      }
-    }
-
-    this.level = LEVELS[0];
+    this.levelIndex = levelIndex;
+    this.level = LEVELS[levelIndex];
     this.score = 0;
-    this.lives = MAX_LIVES;
+    this.totalScore = totalScore;
+    this.lives = lives;
     this.over = false;
 
     this.tables = [];
@@ -80,6 +63,8 @@ export class GameScene extends Phaser.Scene {
     this.hud = new Hud(this);
     this.hud.setScore(this.score, this.level.targetScore);
     this.hud.setLives(this.lives, MAX_LIVES);
+
+    fadeIn(this);
   }
 
   onSlap(x, y) {
@@ -89,20 +74,36 @@ export class GameScene extends Phaser.Scene {
     fly.hit(x, y);
     this.lives -= 1;
     this.hud.setLives(this.lives, MAX_LIVES);
-    if (this.lives <= 0) this.endRound();
-  }
-
-  // Placeholder until the game over scene exists (ticket 05).
-  endRound() {
-    this.over = true;
-    for (const npc of this.npcs) npc.stop();
-    this.hud.banner('Hết mạng!');
+    if (this.lives <= 0) {
+      this.endRound('Hết mạng!', 'GameOverScene', {
+        totalScore: this.totalScore,
+        levelIndex: this.levelIndex,
+      });
+    }
   }
 
   addScore(food) {
+    if (this.over) return;
     this.score += food.info.points;
+    this.totalScore += food.info.points;
     this.hud.setScore(this.score, this.level.targetScore);
     this.hud.popup(food.x, food.sprite.y - 40, `+${food.info.points} ${food.info.name}`);
+    if (this.score >= this.level.targetScore) {
+      this.endRound('Đủ điểm!', 'LevelCompleteScene', {
+        levelIndex: this.levelIndex,
+        levelScore: this.score,
+        totalScore: this.totalScore,
+        lives: this.lives,
+      });
+    }
+  }
+
+  // Freezes play, shows a banner, then fades to the next scene.
+  endRound(message, nextScene, data) {
+    this.over = true;
+    for (const npc of this.npcs) npc.stop();
+    this.hud.banner(message);
+    this.time.delayedCall(END_DELAY_MS, () => fadeTo(this, nextScene, data));
   }
 
   surfaceAt(x, y) {
