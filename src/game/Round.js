@@ -15,8 +15,9 @@ const BOUNDS_INSET = 0.4;
 // One attempt at one level: builds its tables, dishes and diners, runs the
 // fly and the slaps, and keeps score and lives.
 //
-// Events: 'score' (score, food), 'lives' (lives), 'slap' (x, z), 'hit',
-//         'won', 'lost'.
+// Events: 'score' (score, food), 'lives' (lives), 'swing' (weapon) as a
+//         strike starts coming down, 'slap' (x, z, weapon) as it lands,
+//         'hit', 'won', 'lost'.
 export class Round {
   constructor(scene, level, levelIndex, { lives }) {
     this.scene = scene;
@@ -64,7 +65,8 @@ export class Round {
         surfaceAt,
         canAttack,
       });
-      npc.events.on('slap', (x, z) => this.onSlap(x, z));
+      npc.events.on('swing', (w) => !this.over && this.events.emit('swing', w));
+      npc.events.on('slap', (x, z, w) => this.onSlap(x, z, w));
       this.group.add(...npc.objects);
       return npc;
     });
@@ -104,9 +106,10 @@ export class Round {
     if (this.score >= this.level.targetScore) this.end('won');
   }
 
-  onSlap(x, z) {
+  // Every weapon hits the same way: anything inside the zone is hit.
+  onSlap(x, z, weapon = 'hand') {
     if (this.over) return;
-    this.events.emit('slap', x, z);
+    this.events.emit('slap', x, z, weapon);
     const fly = this.fly;
     if (!inSlapZone(fly.x, fly.z, x, z) || fly.isInvincible(this.time)) return;
     fly.hit(x, z, this.time);

@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Huế scene with river edge and phượng, noon lighting
-- [ ] Bún bò Huế, cơm hến, bánh bèo models with empty states
-- [ ] Level 2 uses them; level check passes
+- [x] Huế scene with river edge and phượng, noon lighting
+- [x] Bún bò Huế, cơm hến, bánh bèo models with empty states
+- [x] Level 2 uses them; level check passes

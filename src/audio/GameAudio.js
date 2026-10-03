@@ -5,8 +5,8 @@ const FULL_SPEED = 4.2;
 const SLAP_GAP_MS = 80; // two diners landing together sound like one slap
 
 // Sounds that follow the fly during a round: a buzz loop whose volume and
-// pitch track the fly's speed, a munch loop while eating, plus one-shot slap
-// and hurt effects. Each loop is a single voice, so nothing stacks.
+// pitch track the fly's speed, a munch loop while eating, plus one-shot slap,
+// fan and hurt effects. Each loop is a single voice, so nothing stacks.
 export class GameAudio {
   constructor(engine) {
     this.engine = engine;
@@ -31,11 +31,21 @@ export class GameAudio {
     else if (!eating && this.munch.playing) this.munch.stop();
   }
 
-  slap() {
+  // A fan's sound starts with the whoosh of the swing and lands its thwack
+  // on impact, so it plays as the strike starts; a palm plays on impact.
+  swing(weapon) {
+    if (weapon === 'fan') this.strike('fan');
+  }
+
+  slap(weapon = 'hand') {
+    if (weapon !== 'fan') this.strike('slap');
+  }
+
+  strike(sound) {
     const now = performance.now();
     if (now - this.lastSlap < SLAP_GAP_MS) return;
     this.lastSlap = now;
-    this.engine.play('slap');
+    this.engine.play(sound);
   }
 
   hurt() {

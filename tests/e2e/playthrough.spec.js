@@ -1,7 +1,22 @@
 import { test, expect } from '@playwright/test';
 import { COPY, levelName } from '../../src/copy.js';
 import { LEVELS } from '../../src/levels.js';
-import { openGame, waitForMode, startGame, hud, board, fullHearts, clickDish, strikeFly, finishLevel, expectNoErrors } from './game.js';
+import { REGIONS } from '../../src/regions.js';
+import { DISHES } from '../../src/game/dishes.js';
+import {
+  openGame,
+  waitForMode,
+  startGame,
+  goToLevel,
+  hud,
+  board,
+  fullHearts,
+  clickDish,
+  strikeFly,
+  finishLevel,
+  expectNoErrors,
+  SLOW,
+} from './game.js';
 
 test('home screen shows the shop sign and menu, Enter starts level 1', async ({ page }) => {
   const errors = await openGame(page);
@@ -54,7 +69,7 @@ test('clicking a dish lands the fly and eating fills it up', async ({ page }) =>
   const errors = await openGame(page);
   await startGame(page);
   const dish = await clickDish(page, 'low');
-  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[0].targetScore}`, { timeout: 15_000 });
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[0].targetScore}`, SLOW);
   await expect(page.locator('.popup')).toContainText(dish.name);
   await expectNoErrors(errors);
 });
@@ -112,15 +127,83 @@ test('movement works with a Vietnamese input method switched on', async ({ page 
   const x = () => page.evaluate(() => window.__app.round.fly.x);
   const before = await x();
   // Telex/VNI send keyCode 229 and key "Process", but code names the key.
-  await page.evaluate(() => {
-    const ev = (type) => {
+  // The key is held until the fly has moved: software WebGL on CI can take
+  // longer than a quick tap to draw one frame.
+  const press = (type) =>
+    page.evaluate((type) => {
       const e = new KeyboardEvent(type, { key: 'Process', code: 'KeyD', bubbles: true });
       Object.defineProperty(e, 'keyCode', { get: () => 229 });
-      return e;
-    };
-    window.dispatchEvent(ev('keydown'));
-    setTimeout(() => window.dispatchEvent(ev('keyup')), 400);
+      window.dispatchEvent(e);
+    }, type);
+  await press('keydown');
+  await expect.poll(x, SLOW).toBeGreaterThan(before + 0.1);
+  await press('keyup');
+  await expectNoErrors(errors);
+});
+
+test('level 2 is Huế and serves bánh bèo, cơm hến and bún bò Huế', async ({ page }) => {
+  const errors = await openGame(page);
+  await goToLevel(page, 1);
+  await expect(hud(page)).toContainText(levelName(1));
+  const served = await page.evaluate(() => [...new Set(window.__app.round.foods.map((f) => f.info.name))].sort());
+  expect(served).toEqual(Object.values(REGIONS.hue.dishes).map((id) => DISHES[id].name).sort());
+  const dish = await clickDish(page, 'low');
+  expect(dish.name).toBe(DISHES[REGIONS.hue.dishes.low].name);
+  await expect(page.locator('.popup')).toContainText(dish.name, SLOW);
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[1].targetScore}`);
+  await expectNoErrors(errors);
+});
+
+// Level 3 mixes bare hands and nan fans; both must warn and hit the same way.
+for (const weapon of ['hand', 'fan']) {
+  test(`a ${weapon} strike shows the warning zone, hits only inside it`, async ({ page }) => {
+    const errors = await openGame(page);
+    await goToLevel(page, 2);
+    // Only the diner under test strikes, aimed at the fly; with `escape`
+    // the fly darts out of the zone as soon as it appears.
+    const strike = (escape) =>
+      page.evaluate(
+        ({ weapon, escape }) => {
+          const r = window.__app.round;
+          const npc = r.npcs.find((n) => n.weapon === weapon);
+          for (const n of r.npcs) n.cooldown = Infinity;
+          r.fly.invincibleUntil = 0;
+          r.fly.x = npc.x + 0.3;
+          r.fly.z = npc.z + 1.2;
+          npc.startWindup(r.fly);
+          if (escape) r.fly.x += npc.x > 0 ? -2.5 : 2.5;
+          return npc.zone.visible;
+        },
+        { weapon, escape },
+      );
+    const idle = () => page.evaluate((weapon) => window.__app.round.npcs.find((n) => n.weapon === weapon).state === 'idle', weapon);
+
+    expect(await strike(true)).toBe(true);
+    await expect.poll(idle).toBe(false);
+    await expect.poll(idle, SLOW).toBe(true);
+    expect(await fullHearts(page)).toBe(3);
+
+    expect(await strike(false)).toBe(true);
+    await expect.poll(() => fullHearts(page), SLOW).toBe(2);
+    await expect(page.locator('.popup.hit')).toHaveText(new RegExp(COPY.hit.join('|')));
+    await expectNoErrors(errors);
   });
-  await expect.poll(x).toBeGreaterThan(before + 0.1);
+}
+
+test('level 3 is Hội An with chè as a bonus and a nan fan among the diners', async ({ page }) => {
+  const errors = await openGame(page);
+  await goToLevel(page, 2);
+  await expect(hud(page)).toContainText(levelName(2));
+  const { served, weapons } = await page.evaluate(() => {
+    const r = window.__app.round;
+    return { served: [...new Set(r.foods.map((f) => f.info.name))].sort(), weapons: r.npcs.map((n) => n.weapon) };
+  });
+  const expected = [...Object.values(REGIONS.hoian.dishes), 'che'].map((id) => DISHES[id].name).sort();
+  expect(served).toEqual(expected);
+  expect(weapons).toContain('fan');
+  const dish = await clickDish(page, 'bonus');
+  expect(dish.name).toBe(DISHES.che.name);
+  await expect(page.locator('.popup')).toContainText(dish.name, SLOW);
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[2].targetScore}`);
   await expectNoErrors(errors);
 });

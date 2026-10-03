@@ -1,6 +1,11 @@
 // Helpers for driving the game through its development hook (window.__app).
 import { expect } from '@playwright/test';
 
+// For waits that run on game time (flying, eating, a strike). Game time
+// advances at most 50 ms per frame, and software WebGL on CI draws only a
+// few frames a second, so these can take far longer than they would in play.
+export const SLOW = { timeout: 45_000 };
+
 export async function openGame(page) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -57,6 +62,18 @@ export async function finishLevel(page) {
     const r = window.__app.round;
     while (!r.over) r.onEat(r.foods[0]);
   });
+}
+
+// From the home screen, plays through to level `index` (0-based) by
+// finishing every level before it.
+export async function goToLevel(page, index) {
+  await startGame(page);
+  for (let i = 0; i < index; i++) {
+    await finishLevel(page);
+    await waitForMode(page, 'result');
+    await page.keyboard.press('Enter');
+    await waitForMode(page, 'play');
+  }
 }
 
 export async function expectNoErrors(errors) {

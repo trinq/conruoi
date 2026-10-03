@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mat, mesh, jitter, range, pick, textTexture } from './lowpoly.js';
+import { bakeStatic } from './bake.js';
 
 // Low-poly model factories. Units are metres-ish; every model's origin sits
 // on the ground (or on the surface it stands on) and faces +z.
@@ -478,6 +479,216 @@ function banhCuon(rand) {
   return g;
 }
 
+// Scatters bits over a mound (a heap of rice) of radius `radius` whose top
+// is `rise` above `y`, so they sit on its surface.
+function moundBits(rand, group, count, makeGeometry, color, y, radius, rise) {
+  for (let i = 0; i < count; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * radius * 0.85;
+    const m = mesh(makeGeometry(), mat(color), { cast: false });
+    m.position.set(Math.cos(a) * r, y + rise * Math.sqrt(1 - (r / radius) ** 2), Math.sin(a) * r);
+    m.rotation.set(rand() * 0.6, rand() * 6, rand() * 0.6);
+    group.add(m);
+  }
+}
+
+const lyingNoodle = (length, radius = 0.013) => () => new THREE.CylinderGeometry(radius, radius, length, 5).rotateZ(Math.PI / 2);
+
+// Bún bò Huế: red, chilli-oiled broth with thick round noodles, beef, a
+// slice of pork knuckle, cubes of blood cake and a wedge of lime.
+function bunBoHue(rand) {
+  const g = bowlShell('#8a2a1e');
+  const contents = new THREE.Group();
+  soup(contents, '#d2552a');
+  bits(rand, contents, 7, () => new THREE.CircleGeometry(0.035, 6).rotateX(-Math.PI / 2), '#a8261a', 0.162, 0.22);
+  bits(rand, contents, 9, lyingNoodle(0.2, 0.016), '#fbf3e0', 0.17, 0.14);
+  bits(rand, contents, 3, () => new THREE.BoxGeometry(0.12, 0.015, 0.08), '#7a3f30', 0.175, 0.14);
+  bits(rand, contents, 3, () => new THREE.BoxGeometry(0.06, 0.05, 0.06), '#5a1e1e', 0.18, 0.15);
+  const knuckle = mesh(new THREE.TorusGeometry(0.055, 0.03, 5, 9), mat('#f0d9b8'), { cast: false });
+  knuckle.rotation.x = -Math.PI / 2;
+  knuckle.position.set(-0.06, 0.185, 0.05);
+  contents.add(knuckle);
+  const bone = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.03, 7), mat('#e3b49a'), { cast: false });
+  bone.position.set(-0.06, 0.185, 0.05);
+  contents.add(bone);
+  bits(rand, contents, 8, () => new THREE.CylinderGeometry(0.018, 0.018, 0.012, 6), '#5fbf3a', 0.19, 0.2);
+  const lime = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.04, 8, 1, false, 0, Math.PI), mat('#7cc242'), { cast: false });
+  lime.rotation.set(Math.PI / 2, 0, 0.4);
+  lime.position.set(0.24, 0.2, -0.12);
+  contents.add(lime);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Cơm hến: a small bowl of rice heaped with baby clams, crackling, peanuts
+// and herbs, with a cup of clam broth on the side.
+function comHen(rand) {
+  const g = new THREE.Group();
+  const bowl = bowlShell('#3a6fb0');
+  bowl.scale.setScalar(0.8);
+  g.add(bowl);
+  const cup = bowlShell('#3a6fb0');
+  cup.scale.setScalar(0.42);
+  cup.position.set(0.27, 0, -0.17);
+  g.add(cup);
+
+  const contents = new THREE.Group();
+  const rice = mesh(jitter(new THREE.IcosahedronGeometry(0.19, 1), 0.012, rand), mat('#fbfaf2'));
+  rice.scale.y = 0.45;
+  rice.position.y = 0.13;
+  contents.add(rice);
+  const [y, r, rise] = [0.13, 0.19, 0.085];
+  moundBits(rand, contents, 28, () => new THREE.IcosahedronGeometry(0.026, 0).scale(1.3, 0.6, 1), pick(rand, ['#6b5a3a', '#7a6642']), y, r, rise);
+  moundBits(rand, contents, 8, () => new THREE.BoxGeometry(0.04, 0.03, 0.04), '#e8b04a', y, r, rise);
+  moundBits(rand, contents, 8, () => new THREE.IcosahedronGeometry(0.018, 0), '#c9925a', y, r, rise);
+  moundBits(rand, contents, 10, () => new THREE.BoxGeometry(0.06, 0.01, 0.018), '#4caf50', y, r, rise);
+  moundBits(rand, contents, 4, () => new THREE.CylinderGeometry(0.014, 0.014, 0.008, 6), '#e53935', y, r, rise);
+  const broth = new THREE.Group();
+  soup(broth, '#d8cfa4');
+  broth.scale.setScalar(0.42);
+  broth.position.copy(cup.position);
+  contents.add(broth);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bánh bèo: a tray of little saucers, each with a steamed rice cake topped
+// with shrimp floss and crackling.
+function banhBeo(rand) {
+  const g = new THREE.Group();
+  const tray = mesh(new THREE.CylinderGeometry(0.34, 0.32, 0.03, 16), mat('#b08850'));
+  tray.position.y = 0.015;
+  g.add(tray);
+  const contents = new THREE.Group();
+  const spots = [[0, 0]];
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2;
+    spots.push([Math.cos(a) * 0.2, Math.sin(a) * 0.2]);
+  }
+  for (const [x, z] of spots) {
+    const saucer = mesh(new THREE.CylinderGeometry(0.08, 0.055, 0.035, 10), mat('#f7f4ec', { roughness: 0.5 }));
+    saucer.position.set(x, 0.048, z);
+    g.add(saucer);
+    const rim = mesh(new THREE.TorusGeometry(0.078, 0.006, 3, 10), mat('#3a6fb0'), { cast: false });
+    rim.rotation.x = -Math.PI / 2;
+    rim.position.set(x, 0.066, z);
+    g.add(rim);
+    const cake = mesh(new THREE.CylinderGeometry(0.062, 0.055, 0.018, 10), mat('#f4f1e6'), { cast: false });
+    cake.position.set(x, 0.07, z);
+    contents.add(cake);
+    const floss = mesh(jitter(new THREE.IcosahedronGeometry(0.03, 0), 0.006, rand), mat('#e8743a'), { cast: false });
+    floss.scale.y = 0.5;
+    floss.position.set(x, 0.085, z);
+    contents.add(floss);
+    const rind = mesh(new THREE.BoxGeometry(0.022, 0.018, 0.022), mat('#f2d27a'), { cast: false });
+    rind.position.set(x + 0.03, 0.088, z - 0.02);
+    contents.add(rind);
+  }
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Cao lầu: thick amber noodles in a little dark sauce, slices of xá xíu,
+// square crackers stood up in the bowl and fresh greens.
+function caoLau(rand) {
+  const g = bowlShell('#5a3a22');
+  const contents = new THREE.Group();
+  soup(contents, '#8a5a2e', 0.25, 0.13);
+  bits(rand, contents, 10, lyingNoodle(0.2, 0.02), '#dcaa58', 0.15, 0.13);
+  bits(rand, contents, 4, () => new THREE.BoxGeometry(0.13, 0.02, 0.08), '#b3503e', 0.175, 0.12);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.4;
+    const cracker = mesh(new THREE.BoxGeometry(0.09, 0.012, 0.09), mat('#e8c070'), { cast: false });
+    cracker.position.set(Math.cos(a) * 0.15, 0.21, Math.sin(a) * 0.15);
+    cracker.rotation.set(0.9, -a, 0, 'YXZ');
+    contents.add(cracker);
+  }
+  bits(rand, contents, 6, () => new THREE.IcosahedronGeometry(0.045, 0), '#5cae3a', 0.19, 0.12);
+  bits(rand, contents, 6, lyingNoodle(0.07, 0.008), '#f4f1e0', 0.19, 0.14);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Mì Quảng: wide turmeric noodles in a shallow broth with shrimp, pork,
+// quail eggs, peanuts and herbs, and a sesame rice cracker on the rim.
+function miQuang(rand) {
+  const g = bowlShell('#2e8b57');
+  const contents = new THREE.Group();
+  soup(contents, '#e2a03a', 0.26, 0.14);
+  bits(rand, contents, 8, () => new THREE.BoxGeometry(0.2, 0.008, 0.045), '#f2cf5a', 0.155, 0.13);
+  bits(rand, contents, 3, () => new THREE.TorusGeometry(0.035, 0.016, 4, 8, Math.PI * 1.3).rotateX(Math.PI / 2), '#f07a3a', 0.17, 0.13);
+  bits(rand, contents, 2, () => new THREE.BoxGeometry(0.1, 0.018, 0.07), '#c9785a', 0.168, 0.12);
+  for (let i = 0; i < 2; i++) {
+    const egg = mesh(new THREE.SphereGeometry(0.03, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#fbf8ee'), { cast: false });
+    egg.position.set(-0.08 + i * 0.1, 0.16, 0.08 - i * 0.05);
+    contents.add(egg);
+    const yolk = mesh(new THREE.CircleGeometry(0.014, 7).rotateX(-Math.PI / 2), mat('#f5b82e'), { cast: false });
+    yolk.position.set(egg.position.x, 0.19, egg.position.z);
+    contents.add(yolk);
+  }
+  bits(rand, contents, 8, () => new THREE.IcosahedronGeometry(0.016, 0), '#c9925a', 0.175, 0.16);
+  bits(rand, contents, 5, () => new THREE.IcosahedronGeometry(0.035, 0), '#4caf50', 0.18, 0.15);
+  const cracker = mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.012, 12), mat('#e6c78a'), { cast: false });
+  cracker.position.set(0.2, 0.25, -0.1);
+  cracker.rotation.set(0, 0.4, 0.95, 'YXZ');
+  for (let i = 0; i < 12; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * 0.14;
+    const seed = mesh(new THREE.BoxGeometry(0.014, 0.006, 0.008), mat('#2a2420'), { cast: false });
+    seed.position.set(Math.cos(a) * r, 0.008, Math.sin(a) * r);
+    cracker.add(seed);
+  }
+  contents.add(cracker);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bánh mì on its paper: a crusty loaf split open along the side, showing
+// pâté, ham, pickled carrot, herbs and chilli.
+function banhMi(rand) {
+  const g = new THREE.Group();
+  const paper = mesh(new THREE.BoxGeometry(0.46, 0.008, 0.32), mat('#efe6d0'));
+  paper.position.y = 0.004;
+  paper.rotation.y = 0.15;
+  g.add(paper);
+  const contents = new THREE.Group();
+  const loaf = mesh(new THREE.CapsuleGeometry(0.075, 0.28, 3, 8), mat('#d9963a', { roughness: 0.7 }));
+  loaf.rotation.z = Math.PI / 2;
+  loaf.scale.set(0.85, 1, 1);
+  loaf.position.y = 0.075;
+  contents.add(loaf);
+  for (let i = 0; i < 3; i++) {
+    const cut = mesh(new THREE.BoxGeometry(0.02, 0.01, 0.09), mat('#b8742a'), { cast: false });
+    cut.position.set(-0.1 + i * 0.1, 0.14, -0.01);
+    cut.rotation.y = 0.5;
+    contents.add(cut);
+  }
+  const fillings = [
+    ['#7a4a35', 0.012, 0.05],
+    ['#e8a0a0', 0.02, 0.065],
+    ['#f08a24', 0.03, 0.075],
+    ['#4caf50', 0.035, 0.085],
+  ];
+  for (const [colour, , z] of fillings) {
+    for (let i = 0; i < 5; i++) {
+      const bit = mesh(new THREE.BoxGeometry(0.07, 0.025, 0.02), mat(colour), { cast: false });
+      bit.position.set(-0.16 + i * 0.08 + range(rand, -0.02, 0.02), 0.085 + range(rand, -0.01, 0.01), z);
+      bit.rotation.y = range(rand, -0.3, 0.3);
+      contents.add(bit);
+    }
+  }
+  bits(rand, contents, 3, () => new THREE.CylinderGeometry(0.01, 0.01, 0.04, 5).rotateZ(Math.PI / 2), '#e53935', 0.1, 0.08);
+  contents.children.at(-1).position.z = 0.08;
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
 const DISH_BUILDERS = {
   pho: (rand) => noodleBowl(rand, '#d9a85b', '#3a6fb0'),
   bun: (rand) => noodleBowl(rand, '#d9542b', '#2e8b57'),
@@ -486,6 +697,12 @@ const DISH_BUILDERS = {
   'pho-bo': phoBo,
   'bun-cha': bunCha,
   'banh-cuon': banhCuon,
+  'bun-bo-hue': bunBoHue,
+  'com-hen': comHen,
+  'banh-beo': banhBeo,
+  'cao-lau': caoLau,
+  'mi-quang': miQuang,
+  'banh-mi': banhMi,
 };
 
 // Builds a dish model; every dish exposes `userData.contents`, hidden once
@@ -493,7 +710,15 @@ const DISH_BUILDERS = {
 export function dish(type, rand) {
   const build = DISH_BUILDERS[type];
   if (!build) throw new Error(`unknown dish ${type}`);
-  return build(rand);
+  // A dish is dozens of little pieces; merge them into a few meshes, keeping
+  // the contents separate so they can still be hidden.
+  const model = build(rand);
+  const { contents } = model.userData;
+  model.remove(contents);
+  const merged = bakeStatic(model);
+  merged.userData.contents = bakeStatic(contents);
+  merged.add(merged.userData.contents);
+  return merged;
 }
 
 // ----- characters ----------------------------------------------------------
@@ -698,7 +923,7 @@ export function person(rand, archetype = pickArchetype(rand)) {
   chopsticks.position.set(0, -0.48, 0.15);
   rightArm.add(chopsticks);
 
-  g.userData = { head, leftArm, rightArm, skin, shirt: sleeve, archetype };
+  g.userData = { head, leftArm, rightArm, chopsticks, skin, shirt: sleeve, archetype };
   return g;
 }
 
@@ -720,6 +945,58 @@ export function slapHand(skin, shirt) {
   cuff.position.set(0, 0.02, -0.26);
   g.add(cuff);
   g.scale.setScalar(1.35);
+  return g;
+}
+
+// Quạt nan: a round fan of woven bamboo strips with a dyed rim and a
+// bamboo handle, lying flat with the blade centred on the origin and the
+// handle toward -z. The blade hangs from `userData.pivot`, placed at the
+// grip, so the fan can be cocked back and swung down from the hand.
+export function nanFan() {
+  const g = new THREE.Group();
+  const pivot = new THREE.Group();
+  const R = 0.52;
+  const grip = R * 0.9 + 0.38;
+  pivot.position.z = -grip;
+  g.add(pivot);
+  const blade = new THREE.Group();
+  // A touch of glow keeps the weave readable when the fan is cocked back
+  // and players see its shaded striking face.
+  const bamboo = { emissive: '#6b5020', emissiveIntensity: 0.35 };
+  const disc = mesh(new THREE.CylinderGeometry(R, R, 0.025, 16), mat('#e2c27e', bamboo));
+  disc.scale.z = 0.9;
+  blade.add(disc);
+  // Woven strips both ways on both faces, giving the lattice of a nan weave.
+  const strip = mat('#b88d48', bamboo);
+  for (let i = -4; i <= 4; i++) {
+    const c = (i / 4.5) * R;
+    const len = 2 * Math.sqrt(R * R - c * c) * 0.96;
+    for (const side of [-1, 1]) {
+      const across = mesh(new THREE.BoxGeometry(len, 0.012, 0.045), strip, { cast: false });
+      across.position.set(0, side * 0.016, c * 0.9);
+      blade.add(across);
+      const along = mesh(new THREE.BoxGeometry(0.045, 0.012, len * 0.9), strip, { cast: false });
+      along.position.set(c, side * 0.02, 0);
+      blade.add(along);
+    }
+  }
+  const rim = mesh(new THREE.TorusGeometry(R, 0.03, 4, 18), mat('#a3322a'));
+  rim.rotation.x = Math.PI / 2;
+  rim.scale.y = 0.9;
+  blade.add(rim);
+  const handle = mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.5, 6), mat('#8a6a3a'));
+  handle.rotation.x = Math.PI / 2;
+  handle.position.z = -grip + 0.17;
+  blade.add(handle);
+  // The spine of the handle runs on up through the blade.
+  const spine = mesh(new THREE.BoxGeometry(0.04, 0.02, R * 1.5), mat('#9a7840'), { cast: false });
+  spine.position.set(0, 0.025, -R * 0.15);
+  blade.add(spine);
+  const merged = bakeStatic(blade);
+  merged.position.z = grip;
+  pivot.add(merged);
+
+  g.userData.pivot = pivot;
   return g;
 }
 

@@ -84,6 +84,7 @@ export const LEVELS = [
           { tier: 'high', dx: -0.8, dz: 0.1 },
           { tier: 'low', dx: 0.6, dz: -0.4 },
           { tier: 'medium', dx: 0.5, dz: 0.45 },
+          { bonus: 'che', dx: -0.15, dz: -0.45 },
         ],
       },
       {

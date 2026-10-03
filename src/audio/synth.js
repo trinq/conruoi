@@ -85,6 +85,43 @@ export function slap(sr) {
   );
 }
 
+// Nan fan: a whoosh rising as the fan swings down, then the flat, papery
+// "phạch" of woven bamboo on the table with a hollow knock and a rattle of
+// loose strips, and a puff of air. No deep thump, unlike a palm. The impact
+// lands at FAN_HIT_S, which matches the strike's drop time, so the sound is
+// started as the strike begins.
+export const FAN_HIT_S = 0.09;
+
+export function fan(sr) {
+  const rand = mulberry32(11);
+  // State-variable filter, swept for the whoosh.
+  let low = 0;
+  let band = 0;
+  let hp = 0;
+  return declick(
+    render(0.45, sr, (t) => {
+      const noise = rand() * 2 - 1;
+      const local = t - FAN_HIT_S;
+      const fc = local < 0 ? 350 + 2200 * (t / FAN_HIT_S) ** 2 : 1400 * Math.exp(-local * 6) + 300;
+      const f = 2 * Math.sin((Math.PI * fc) / sr);
+      const high = noise - low - 0.7 * band;
+      band += f * high;
+      low += f * band;
+      const whoosh = band * (local < 0 ? (t / FAN_HIT_S) ** 2 : 0.5 * Math.exp(-local * 14));
+      if (local < 0) return 0.5 * whoosh;
+
+      hp += 0.5 * (noise - hp);
+      const crack = (noise - hp) * Math.exp(-local * 75);
+      const rattleAt = local - 0.022;
+      const rattle = rattleAt > 0 ? (noise - hp) * 0.45 * Math.exp(-rattleAt * 90) : 0;
+      const knock = Math.sin(TAU * 240 * local) * Math.exp(-local * 32) + 0.5 * Math.sin(TAU * 640 * local) * Math.exp(-local * 50);
+      return Math.tanh(1.8 * (0.9 * crack + rattle + 0.45 * knock + 0.5 * whoosh)) * 0.7;
+    }),
+    sr,
+    1,
+  );
+}
+
 function square(phase) {
   return phase % 1 < 0.5 ? 1 : -1;
 }
@@ -146,4 +183,4 @@ export function jingle(sr) {
   );
 }
 
-export const SOUNDS = { buzz, munch, slap, hurt, jingle };
+export const SOUNDS = { buzz, munch, slap, fan, hurt, jingle };
