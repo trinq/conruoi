@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { fly as flyModel } from '../world/models.js';
+import { fly as flyModel, flyHat } from '../world/models.js';
 import { Emitter } from './Emitter.js';
 
 const SPEED = 4.2; // m/s at full speed
@@ -16,6 +16,8 @@ const STUN_MS = 600; // no control after being hit
 const INVINCIBLE_MS = 1800; // i-frames after being hit (includes the stun)
 const KNOCKBACK_SPEED = 5;
 const STUN_DRAG = 4;
+const GRAVITY = 9.8;
+const HAT_POP_SPEED = 3; // how hard the hat flies off on a hit (m/s)
 
 // The player. (x, z) is the fly's position on the ground plane; the model is
 // drawn `altitude` above it, and a blob shadow marks the spot below.
@@ -48,7 +50,15 @@ export class Fly {
       new THREE.MeshBasicMaterial({ color: '#000000', transparent: true, opacity: 0.32, depthWrite: false }),
     );
     this.shadow.rotation.x = -Math.PI / 2;
-    this.objects = [this.model, this.shadow];
+
+    // The nón lá is its own object so it can fly off when the fly is hit.
+    // While worn it follows the hat anchor on the fly's head.
+    this.hat = flyHat();
+    this.hatState = 'on'; // 'on' | 'falling' | 'ground'
+    this.hatVelocity = new THREE.Vector3();
+    this.hatSpin = 0;
+
+    this.objects = [this.model, this.shadow, this.hat];
   }
 
   get speed() {
@@ -81,6 +91,15 @@ export class Fly {
     this.state = 'stunned';
     this.stunnedUntil = timeMs + STUN_MS;
     this.invincibleUntil = timeMs + INVINCIBLE_MS;
+    this.knockHatOff();
+  }
+
+  knockHatOff() {
+    if (this.hatState !== 'on') return;
+    this.hatState = 'falling';
+    const a = Math.random() * Math.PI * 2;
+    this.hatVelocity.set(Math.cos(a) * 1.2, HAT_POP_SPEED, Math.sin(a) * 1.2);
+    this.hatSpin = (Math.random() < 0.5 ? -1 : 1) * 10;
   }
 
   isInvincible(timeMs) {
@@ -107,6 +126,35 @@ export class Fly {
     this.altitude += (targetAltitude - this.altitude) * Math.min(1, ALTITUDE_LERP * dt);
 
     this.updateModel(timeMs, dt, surfaceAt(this.x, this.z));
+    this.updateHat(timeMs, dt, surfaceAt);
+  }
+
+  updateHat(timeMs, dt, surfaceAt) {
+    const hat = this.hat;
+    if (this.hatState === 'falling') {
+      this.hatVelocity.y -= GRAVITY * dt;
+      hat.position.addScaledVector(this.hatVelocity, dt);
+      hat.rotation.x += this.hatSpin * dt;
+      hat.rotation.z += this.hatSpin * 0.6 * dt;
+      const floor = surfaceAt(hat.position.x, hat.position.z).height + 0.03;
+      if (hat.position.y <= floor) {
+        hat.position.y = floor;
+        hat.rotation.set(0, hat.rotation.y, 0);
+        this.hatState = 'ground';
+      }
+    }
+    // Put it back on once the fly has recovered.
+    if (this.hatState !== 'on' && this.state !== 'stunned' && !this.isInvincible(timeMs)) this.hatState = 'on';
+    if (this.hatState === 'on') {
+      const anchor = this.model.userData.hatAnchor;
+      this.model.updateMatrixWorld(true);
+      anchor.getWorldPosition(hat.position);
+      anchor.getWorldQuaternion(hat.quaternion);
+      hat.scale.copy(this.model.scale);
+      hat.visible = this.model.visible;
+    } else {
+      hat.visible = true;
+    }
   }
 
   updateFlying(dt, dir) {
@@ -193,6 +241,12 @@ export class Fly {
     for (const w of m.userData.wings) {
       const side = w.userData.side;
       w.rotation.z = eating ? side * -0.15 : side * (0.25 + Math.sin(timeMs * 0.09 + side) * 0.55);
+    }
+
+    m.userData.setExpression(eating ? 'happy' : stunned ? 'dizzy' : 'normal');
+    if (stunned) {
+      m.userData.stars.rotation.y += dt * 8;
+      for (const s of m.userData.swirls) s.rotation.z -= dt * 12;
     }
 
     // i-frames flicker.

@@ -141,6 +141,17 @@ export class App {
     });
   }
 
+  // On the home screen the fly loops lazily around the table.
+  menuFlightDir(now) {
+    const a = now * 0.0006;
+    const target = { x: Math.cos(a) * 3.2, z: 1.2 + Math.sin(a) * 2.2 };
+    const fly = this.round.fly;
+    const dx = target.x - fly.x;
+    const dz = target.z - fly.z;
+    const len = Math.hypot(dx, dz);
+    return len < 0.3 ? { x: 0, z: 0 } : { x: dx / len, z: dz / len };
+  }
+
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
@@ -150,7 +161,7 @@ export class App {
       this.gameAudio.update(this.round.fly, dt / 1000);
       this.ui.updateBars(this.round.foods);
     } else {
-      this.round.preview(dt);
+      this.round.preview(dt, this.mode === 'menu' ? this.menuFlightDir(now) : undefined);
     }
     this.stage.render(dt);
     requestAnimationFrame((t) => this.frame(t));

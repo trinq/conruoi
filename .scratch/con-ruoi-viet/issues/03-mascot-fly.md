@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Mascot fly with big head, eyes and nón lá, readable at gameplay distance
-- [ ] Expressions: normal, happy while eating, dizzy while stunned
-- [ ] Hat falls when hit and is back on after the i-frames
-- [ ] Mascot also flies around on the home screen
+- [x] Mascot fly with big head, eyes and nón lá, readable at gameplay distance
+- [x] Expressions: normal, happy while eating, dizzy while stunned
+- [x] Hat falls when hit and is back on after the i-frames
+- [x] Mascot also flies around on the home screen

@@ -478,24 +478,100 @@ export function slapHand(skin, shirt) {
   return g;
 }
 
-// The fly, facing +z, with flapping wing pivots in userData.
+// Tiny nón lá for the fly mascot; origin at the brim's centre.
+export function flyHat() {
+  const g = new THREE.Group();
+  const cone = mesh(new THREE.ConeGeometry(0.2, 0.13, 12), mat('#ecd38c'), { cast: false });
+  cone.position.y = 0.065;
+  g.add(cone);
+  const band = mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.025, 12), mat('#c9452f'), { cast: false });
+  band.position.y = 0.035;
+  g.add(band);
+  return g;
+}
+
+// The fly mascot, facing +z: a big head with big glossy eyes, a small body,
+// six legs and two wings. userData exposes the wing pivots, where the hat
+// sits, and setExpression('normal' | 'happy' | 'dizzy').
 export function fly() {
   const g = new THREE.Group();
   const shell = mat('#22262b', { roughness: 0.35 });
-  const abdomen = mesh(new THREE.SphereGeometry(0.13, 7, 5), shell);
+  const sheen = mat('#3d4a45', { roughness: 0.4 });
+
+  const abdomen = mesh(new THREE.SphereGeometry(0.1, 8, 6), shell);
   abdomen.scale.set(1, 0.85, 1.35);
-  abdomen.position.z = -0.1;
+  abdomen.position.set(0, -0.02, -0.12);
   g.add(abdomen);
-  const thorax = mesh(new THREE.SphereGeometry(0.11, 7, 5), mat('#3d4a45', { roughness: 0.4 }));
-  thorax.position.z = 0.06;
+  for (const z of [-0.08, -0.15]) {
+    const stripe = mesh(new THREE.TorusGeometry(0.083, 0.012, 4, 10), mat('#4f5d57'));
+    stripe.position.set(0, -0.02, z);
+    g.add(stripe);
+  }
+  const thorax = mesh(new THREE.SphereGeometry(0.085, 8, 6), sheen);
+  thorax.position.set(0, 0, 0.0);
   g.add(thorax);
-  const head = mesh(new THREE.SphereGeometry(0.09, 7, 5), shell);
-  head.position.set(0, 0.01, 0.18);
+
+  // Head bigger than the body, cartoon style.
+  const head = new THREE.Group();
+  head.position.set(0, 0.07, 0.15);
   g.add(head);
-  for (const x of [-0.065, 0.065]) {
-    const eye = mesh(new THREE.SphereGeometry(0.065, 7, 5), mat('#c0392b', { roughness: 0.3 }));
-    eye.position.set(x, 0.04, 0.2);
-    g.add(eye);
+  head.add(mesh(new THREE.SphereGeometry(0.15, 10, 8), shell));
+
+  const eyes = [];
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Group();
+    eye.position.set(side * 0.085, 0.03, 0.1);
+    const ball = mesh(new THREE.SphereGeometry(0.085, 10, 8), mat('#b3262b', { roughness: 0.25 }));
+    eye.add(ball);
+    const sparkle = mesh(new THREE.SphereGeometry(0.025, 6, 4), mat('#ffffff', { roughness: 0.2 }));
+    sparkle.position.set(side * -0.02, 0.035, 0.07);
+    eye.add(sparkle);
+    // Spiral ring shown while dizzy.
+    const swirl = mesh(new THREE.TorusGeometry(0.045, 0.01, 4, 12), mat('#ffffff'));
+    swirl.position.z = 0.08;
+    swirl.visible = false;
+    eye.add(swirl);
+    eye.userData = { ball, sparkle, swirl };
+    head.add(eye);
+    eyes.push(eye);
+  }
+
+  const mouths = {
+    normal: mesh(new THREE.BoxGeometry(0.05, 0.012, 0.01), mat('#f2d0c4')),
+    happy: mesh(new THREE.TorusGeometry(0.035, 0.01, 4, 10, Math.PI), mat('#f2d0c4')),
+    dizzy: mesh(new THREE.TorusGeometry(0.022, 0.009, 4, 10), mat('#f2d0c4')),
+  };
+  mouths.normal.position.set(0, -0.07, 0.135);
+  mouths.happy.position.set(0, -0.055, 0.135);
+  mouths.happy.rotation.z = Math.PI; // smile
+  mouths.dizzy.position.set(0, -0.07, 0.135);
+  for (const m of Object.values(mouths)) head.add(m);
+
+  // Dizzy stars circling the head.
+  const stars = new THREE.Group();
+  stars.position.y = 0.2;
+  for (let i = 0; i < 3; i++) {
+    const star = mesh(new THREE.OctahedronGeometry(0.035, 0), mat('#ffd23f', { emissive: '#ffb000', emissiveIntensity: 0.6 }));
+    const a = (i / 3) * Math.PI * 2;
+    star.position.set(Math.cos(a) * 0.17, 0, Math.sin(a) * 0.17);
+    stars.add(star);
+  }
+  stars.visible = false;
+  head.add(stars);
+
+  // Hat anchor on top of the head.
+  const hatAnchor = new THREE.Object3D();
+  hatAnchor.position.set(0, 0.12, -0.01);
+  hatAnchor.rotation.x = -0.15;
+  head.add(hatAnchor);
+
+  for (const side of [-1, 1]) {
+    for (const z of [-0.05, 0.0, 0.05]) {
+      const leg = mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.12, 4), shell);
+      leg.position.set(side * 0.06, -0.08, z);
+      leg.rotation.z = side * 0.5;
+      g.add(leg);
+    }
   }
 
   const wingMat = new THREE.MeshStandardMaterial({
@@ -509,7 +585,7 @@ export function fly() {
   const wings = [];
   for (const side of [-1, 1]) {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.06, 0.1, 0.02);
+    pivot.position.set(side * 0.05, 0.07, -0.02);
     const wing = new THREE.Mesh(new THREE.CircleGeometry(0.18, 10), wingMat);
     wing.scale.set(1, 0.55, 1);
     wing.rotation.x = -Math.PI / 2;
@@ -520,12 +596,29 @@ export function fly() {
     g.add(pivot);
     wings.push(pivot);
   }
+
   // The game draws a blob shadow right under the fly instead; a sun shadow
   // off to one side makes its position harder to read.
   g.traverse((o) => {
     if (o.isMesh) o.castShadow = false;
   });
-  g.userData.wings = wings;
+
+  let current = null;
+  const setExpression = (name) => {
+    if (name === current) return;
+    current = name;
+    for (const [key, m] of Object.entries(mouths)) m.visible = key === name;
+    for (const eye of eyes) {
+      // Happy eyes squeeze shut into arcs; dizzy eyes show spirals.
+      eye.scale.set(1, name === 'happy' ? 0.35 : 1, 1);
+      eye.userData.sparkle.visible = name === 'normal';
+      eye.userData.swirl.visible = name === 'dizzy';
+    }
+    stars.visible = name === 'dizzy';
+  };
+  setExpression('normal');
+
+  g.userData = { wings, hatAnchor, stars, swirls: eyes.map((e) => e.userData.swirl), setExpression };
   g.scale.setScalar(1.7);
   return g;
 }

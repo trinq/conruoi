@@ -124,11 +124,11 @@ export class Round {
     for (const food of this.foods) food.update(this.time);
   }
 
-  // Keeps the scene alive behind menus and end banners: the fly hovers and
-  // the diners eat, but nobody attacks.
-  preview(dtMs) {
+  // Keeps the scene alive behind menus and end banners: the fly hovers (or
+  // follows `dir`) and the diners eat, but nobody attacks.
+  preview(dtMs, dir = { x: 0, z: 0 }) {
     this.time += dtMs;
-    this.fly.update(this.time, dtMs / 1000, { x: 0, z: 0 }, (x, z) => this.surfaceAt(x, z));
+    this.fly.update(this.time, dtMs / 1000, dir, (x, z) => this.surfaceAt(x, z));
     for (const npc of this.npcs) {
       if (npc.state === 'idle' || npc.state === 'stopped') npc.animateIdle(this.time);
     }
