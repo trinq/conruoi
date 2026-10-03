@@ -1,190 +1,203 @@
 // Level layouts, easiest first. Run `npm run check:levels` after editing.
 //
-// - Table positions are ground-plane centres; a table's footprint is a
-//   diamond `halfWidth` wide and `halfWidth / 2` deep.
-// - Food offsets are relative to their table's centre and must stay inside
-//   its footprint. Types: pho, bun, com, che (bonus).
-// - Diners (npcs) are ground positions of their feet; they sit just behind a
-//   table, outside every footprint.
+// World units are roughly metres. x runs left → right on screen, z runs
+// back → front (toward the camera); the play area is about x ±7, z -3.8…4.6.
+//
+// - tables: centre (x, z), width w (along x) and depth d (along z).
+// - foods: offsets (dx, dz) from their table's centre; they must sit well
+//   inside the table top. Types: pho, bun, com, che (bonus).
+// - npcs: where each diner's stool stands, just off a table edge. They turn
+//   to face the nearest table.
 // - danger.windupMs: warning time before a slap lands.
 //   danger.cooldownMs: [min, max] pause between slaps, per diner.
-//   danger.reach: how close the fly must be for a diner to slap at it.
+//   danger.reach: how close (in metres) the fly must be for a diner to slap.
 //   danger.maxSlaps: how many diners may be winding up / slapping at once.
 export const LEVELS = [
   {
     name: 'Quán phở đầu ngõ',
     theme: 'day',
     targetScore: 80,
-    flyStart: { x: 480, y: 470 },
+    flyStart: { x: 0, z: 3.2 },
     tables: [
       {
-        x: 480,
-        y: 290,
-        halfWidth: 170,
+        x: 0,
+        z: 0,
+        w: 3.4,
+        d: 2.0,
         foods: [
-          { type: 'pho', dx: -70, dy: 0 },
-          { type: 'bun', dx: 40, dy: -25 },
-          { type: 'com', dx: 45, dy: 28 },
+          { type: 'pho', dx: -0.95, dz: 0.1 },
+          { type: 'bun', dx: 0.45, dz: -0.4 },
+          { type: 'com', dx: 0.65, dz: 0.45 },
         ],
       },
     ],
-    npcs: [{ x: 600, y: 222 }],
-    danger: { windupMs: 1500, cooldownMs: [3000, 4500], reach: 280, maxSlaps: 1 },
+    npcs: [{ x: 0.8, z: -1.5 }],
+    danger: { windupMs: 1500, cooldownMs: [3000, 4500], reach: 4, maxSlaps: 1 },
   },
   {
     name: 'Quán bún chả',
     theme: 'day',
     targetScore: 150,
-    flyStart: { x: 480, y: 480 },
+    flyStart: { x: 0, z: 3.4 },
     tables: [
       {
-        x: 480,
-        y: 300,
-        halfWidth: 230,
+        x: 0,
+        z: 0,
+        w: 4.6,
+        d: 2.4,
         foods: [
-          { type: 'pho', dx: -110, dy: 0 },
-          { type: 'bun', dx: -30, dy: -45 },
-          { type: 'com', dx: 60, dy: -30 },
-          { type: 'bun', dx: 30, dy: 40 },
-          { type: 'pho', dx: 120, dy: 10 },
+          { type: 'pho', dx: -1.6, dz: 0.1 },
+          { type: 'bun', dx: -0.5, dz: -0.55 },
+          { type: 'com', dx: 0.6, dz: -0.5 },
+          { type: 'bun', dx: 0.3, dz: 0.55 },
+          { type: 'pho', dx: 1.6, dz: 0.2 },
         ],
       },
     ],
     npcs: [
-      { x: 360, y: 215 },
-      { x: 610, y: 225 },
+      { x: -1.0, z: -1.7 },
+      { x: 1.1, z: -1.7 },
     ],
-    danger: { windupMs: 1300, cooldownMs: [2600, 4000], reach: 300, maxSlaps: 1 },
+    danger: { windupMs: 1300, cooldownMs: [2600, 4000], reach: 4.2, maxSlaps: 1 },
   },
   {
     name: 'Phố ẩm thực',
     theme: 'day',
     targetScore: 220,
-    flyStart: { x: 480, y: 470 },
+    flyStart: { x: 0, z: 3.4 },
     tables: [
       {
-        x: 270,
-        y: 300,
-        halfWidth: 150,
+        x: -3.4,
+        z: 0,
+        w: 3.0,
+        d: 1.9,
         foods: [
-          { type: 'pho', dx: -50, dy: 0 },
-          { type: 'com', dx: 40, dy: -20 },
-          { type: 'bun', dx: 30, dy: 25 },
+          { type: 'pho', dx: -0.8, dz: 0.1 },
+          { type: 'com', dx: 0.6, dz: -0.4 },
+          { type: 'bun', dx: 0.5, dz: 0.45 },
         ],
       },
       {
-        x: 690,
-        y: 300,
-        halfWidth: 150,
+        x: 3.4,
+        z: 0,
+        w: 3.0,
+        d: 1.9,
         foods: [
-          { type: 'bun', dx: -50, dy: 0 },
-          { type: 'pho', dx: 40, dy: -20 },
-          { type: 'com', dx: 30, dy: 25 },
+          { type: 'bun', dx: -0.8, dz: 0.1 },
+          { type: 'pho', dx: 0.6, dz: -0.4 },
+          { type: 'com', dx: 0.5, dz: 0.45 },
         ],
       },
     ],
     npcs: [
-      { x: 310, y: 222 },
-      { x: 650, y: 222 },
-      { x: 780, y: 250 },
+      { x: -3.0, z: -1.45 },
+      { x: 3.0, z: -1.45 },
+      { x: 5.4, z: 0 },
     ],
-    danger: { windupMs: 1150, cooldownMs: [2300, 3600], reach: 300, maxSlaps: 2 },
+    danger: { windupMs: 1150, cooldownMs: [2300, 3600], reach: 4.2, maxSlaps: 2 },
   },
   {
     name: 'Quán đông khách',
     theme: 'day',
     targetScore: 300,
-    flyStart: { x: 480, y: 505 },
+    flyStart: { x: 0, z: 3.8 },
     tables: [
       {
-        x: 220,
-        y: 250,
-        halfWidth: 130,
+        x: -4.2,
+        z: -1.4,
+        w: 2.8,
+        d: 1.6,
         foods: [
-          { type: 'pho', dx: -40, dy: 0 },
-          { type: 'che', dx: 40, dy: 5 },
+          { type: 'pho', dx: -0.6, dz: 0 },
+          { type: 'che', dx: 0.6, dz: 0.1 },
         ],
       },
       {
-        x: 740,
-        y: 250,
-        halfWidth: 130,
+        x: 4.2,
+        z: -1.4,
+        w: 2.8,
+        d: 1.6,
         foods: [
-          { type: 'bun', dx: -40, dy: 0 },
-          { type: 'com', dx: 40, dy: 5 },
+          { type: 'bun', dx: -0.6, dz: 0 },
+          { type: 'com', dx: 0.6, dz: 0.1 },
         ],
       },
       {
-        x: 480,
-        y: 400,
-        halfWidth: 150,
+        x: 0,
+        z: 1.5,
+        w: 3.2,
+        d: 1.8,
         foods: [
-          { type: 'pho', dx: -60, dy: 0 },
-          { type: 'bun', dx: 10, dy: -25 },
-          { type: 'che', dx: 60, dy: 15 },
-          { type: 'com', dx: 0, dy: 30 },
+          { type: 'pho', dx: -0.95, dz: 0 },
+          { type: 'bun', dx: 0.1, dz: -0.4 },
+          { type: 'che', dx: 0.95, dz: 0.2 },
+          { type: 'com', dx: 0, dz: 0.5 },
         ],
       },
     ],
     npcs: [
-      { x: 250, y: 180 },
-      { x: 710, y: 180 },
-      { x: 420, y: 322 },
-      { x: 520, y: 318 },
+      { x: -3.8, z: -2.7 },
+      { x: 3.8, z: -2.7 },
+      { x: -0.7, z: 0.15 },
+      { x: 0.8, z: 0.15 },
     ],
-    danger: { windupMs: 1000, cooldownMs: [2000, 3200], reach: 320, maxSlaps: 2 },
+    danger: { windupMs: 1000, cooldownMs: [2000, 3200], reach: 4.4, maxSlaps: 2 },
   },
   {
     name: 'Chợ đêm',
     theme: 'night',
     targetScore: 380,
-    flyStart: { x: 480, y: 505 },
+    flyStart: { x: 0, z: 3.9 },
     tables: [
       {
-        x: 200,
-        y: 300,
-        halfWidth: 120,
+        x: -4.6,
+        z: 0.3,
+        w: 2.6,
+        d: 1.6,
         foods: [
-          { type: 'pho', dx: -35, dy: 0 },
-          { type: 'che', dx: 35, dy: 5 },
+          { type: 'pho', dx: -0.6, dz: 0 },
+          { type: 'che', dx: 0.6, dz: 0.1 },
         ],
       },
       {
-        x: 480,
-        y: 230,
-        halfWidth: 130,
+        x: 0,
+        z: -1.6,
+        w: 3.0,
+        d: 1.7,
         foods: [
-          { type: 'bun', dx: -45, dy: 0 },
-          { type: 'pho', dx: 40, dy: -10 },
-          { type: 'com', dx: 20, dy: 30 },
+          { type: 'bun', dx: -0.8, dz: 0 },
+          { type: 'pho', dx: 0.6, dz: -0.3 },
+          { type: 'com', dx: 0.35, dz: 0.45 },
         ],
       },
       {
-        x: 760,
-        y: 300,
-        halfWidth: 120,
+        x: 4.6,
+        z: 0.3,
+        w: 2.6,
+        d: 1.6,
         foods: [
-          { type: 'com', dx: -35, dy: 0 },
-          { type: 'bun', dx: 35, dy: 5 },
+          { type: 'com', dx: -0.6, dz: 0 },
+          { type: 'bun', dx: 0.6, dz: 0.1 },
         ],
       },
       {
-        x: 480,
-        y: 420,
-        halfWidth: 120,
+        x: 0,
+        z: 1.9,
+        w: 2.6,
+        d: 1.5,
         foods: [
-          { type: 'che', dx: -35, dy: 0 },
-          { type: 'pho', dx: 35, dy: 5 },
+          { type: 'che', dx: -0.6, dz: 0 },
+          { type: 'pho', dx: 0.6, dz: 0.1 },
         ],
       },
     ],
     npcs: [
-      { x: 230, y: 232 },
-      { x: 510, y: 160 },
-      { x: 730, y: 232 },
-      { x: 450, y: 352 },
-      { x: 520, y: 354 },
+      { x: -4.2, z: -0.95 },
+      { x: 0.4, z: -2.95 },
+      { x: 4.2, z: -0.95 },
+      { x: -0.5, z: 0.65 },
+      { x: 0.6, z: 0.65 },
     ],
-    danger: { windupMs: 900, cooldownMs: [1800, 3000], reach: 320, maxSlaps: 3 },
+    danger: { windupMs: 900, cooldownMs: [1800, 3000], reach: 4.4, maxSlaps: 3 },
   },
 ];

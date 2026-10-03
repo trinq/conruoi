@@ -1,0 +1,345 @@
+/* Cosy farm-sim UI: cream boards with wooden rims over the 3D scene. */
+:root {
+  --wood: #8a5a33;
+  --wood-dark: #5e3a1e;
+  --cream: #fff6e0;
+  --cream-shade: #f1dfb8;
+  --leaf: #5cb85c;
+  --leaf-dark: #3d8b3d;
+  --tomato: #e2483d;
+  --ink: #4a2e18;
+  --sky: #bfe6ff;
+  --font: 'Baloo 2', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #2f5d2a;
+  font-family: var(--font);
+  color: var(--ink);
+}
+
+#app,
+#stage {
+  position: fixed;
+  inset: 0;
+}
+
+#stage canvas {
+  display: block;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ----- HUD ----- */
+
+.hud {
+  position: absolute;
+  inset: 12px 16px auto 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 12px;
+  pointer-events: none;
+}
+
+.pill {
+  background: var(--cream);
+  border: 3px solid var(--wood);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--wood-dark);
+  padding: 2px 14px;
+  font-weight: 700;
+  font-size: clamp(16px, 2.2vw, 22px);
+  line-height: 1.6;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill .label {
+  color: var(--wood);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.score-bar {
+  margin-top: 4px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--cream-shade);
+  overflow: hidden;
+}
+
+.score-bar > div {
+  height: 100%;
+  width: 0;
+  background: var(--leaf);
+  transition: width 0.3s ease;
+}
+
+.hearts {
+  display: flex;
+  gap: 4px;
+  padding: 4px 10px;
+}
+
+.hearts svg {
+  width: 26px;
+  height: 24px;
+}
+
+.heart-full {
+  fill: var(--tomato);
+}
+
+.heart-empty {
+  fill: #c9b79a;
+}
+
+.hearts .lost {
+  animation: heart-pop 0.4s ease;
+}
+
+@keyframes heart-pop {
+  50% {
+    transform: scale(1.4);
+  }
+}
+
+.mute {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  font: 600 15px var(--font);
+  color: var(--cream);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+
+/* ----- world-anchored bits ----- */
+
+.world {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.eat-bar {
+  position: absolute;
+  width: 54px;
+  height: 10px;
+  margin-left: -27px;
+  border-radius: 6px;
+  border: 2px solid var(--wood-dark);
+  background: var(--cream);
+  overflow: hidden;
+}
+
+.eat-bar > div {
+  height: 100%;
+  background: var(--leaf);
+}
+
+.popup {
+  position: absolute;
+  transform: translate(-50%, 0);
+  font-weight: 800;
+  font-size: 22px;
+  color: #ffd23f;
+  -webkit-text-stroke: 1px var(--wood-dark);
+  text-shadow: 0 3px 0 var(--wood-dark);
+  white-space: nowrap;
+  animation: float-up 0.9s ease-out forwards;
+}
+
+@keyframes float-up {
+  to {
+    transform: translate(-50%, -48px);
+    opacity: 0;
+  }
+}
+
+.banner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: clamp(40px, 8vw, 72px);
+  color: var(--cream);
+  -webkit-text-stroke: 2px var(--wood-dark);
+  text-shadow: 0 6px 0 var(--wood-dark);
+  pointer-events: none;
+  animation: pop-in 0.35s ease-out;
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+/* ----- screens ----- */
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 40, 18, 0.25);
+  pointer-events: auto;
+}
+
+.board {
+  width: min(520px, 100%);
+  background: var(--cream);
+  border: 5px solid var(--wood);
+  border-radius: 22px;
+  box-shadow: 0 8px 0 var(--wood-dark), 0 18px 40px rgba(0, 0, 0, 0.3);
+  padding: 22px 26px 26px;
+  text-align: center;
+  display: grid;
+  gap: 10px;
+  animation: pop-in 0.3s ease-out;
+}
+
+.board h1 {
+  margin: 0;
+  font-size: clamp(44px, 8vw, 72px);
+  line-height: 1;
+  color: #ffd23f;
+  -webkit-text-stroke: 2px var(--wood-dark);
+  text-shadow: 0 5px 0 var(--wood-dark);
+  text-wrap: balance;
+}
+
+.board h2 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 42px);
+  line-height: 1.1;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+.board p {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.board .sub {
+  color: var(--wood);
+  font-weight: 600;
+}
+
+.stats {
+  display: grid;
+  gap: 4px;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats b {
+  font-size: 26px;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  text-align: left;
+  background: var(--cream-shade);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 16px;
+}
+
+kbd {
+  font: 700 14px var(--font);
+  background: #fff;
+  border: 2px solid var(--wood);
+  border-bottom-width: 4px;
+  border-radius: 6px;
+  padding: 0 6px;
+  white-space: nowrap;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+button.btn {
+  font: 800 22px var(--font);
+  color: #fff;
+  background: var(--leaf);
+  border: 3px solid var(--leaf-dark);
+  border-radius: 14px;
+  box-shadow: 0 5px 0 var(--leaf-dark);
+  padding: 6px 28px;
+  cursor: pointer;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+button.btn:hover {
+  filter: brightness(1.08);
+}
+
+button.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--leaf-dark);
+}
+
+button.btn:focus-visible {
+  outline: 3px solid #ffd23f;
+  outline-offset: 3px;
+}
+
+button.btn.secondary {
+  background: var(--wood);
+  border-color: var(--wood-dark);
+  box-shadow: 0 5px 0 var(--wood-dark);
+}
+
+.hint {
+  font-size: 15px;
+  color: var(--wood);
+}
+
+.fade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.fade.on {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

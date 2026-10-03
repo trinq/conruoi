@@ -1,12 +1,14 @@
 # Con Ruồi
 
-A pixel art browser game: you are a fly at a Vietnamese street food stall. Land on phở, bún and cơm to score points, and get away before the diners slap you.
+A low-poly 3D browser game: you are a fly at a Vietnamese street food stall. Land on phở, bún, cơm and chè to score points, and get away before the diners slap you.
+
+Built with [three.js](https://threejs.org). Every model (trees, stall, tables, dishes, diners, the fly) and every sound effect is generated in code, so there are no art or audio files.
 
 **Play:** https://trinq.github.io/conruoi/
 
 ## Controls
 
-- **WASD** or **arrow keys**: fly (isometric directions; works with Vietnamese input methods on)
+- **WASD** or **arrow keys**: fly (works with Vietnamese input methods on)
 - **Click a dish**: fly to it, land and eat
 - **Red zone on the table**: a hand is about to slap there; move away
 - **M**: mute / unmute
@@ -19,5 +21,13 @@ npm run dev           # dev server
 npm run build         # static build in dist/
 npm run check:levels  # validate src/levels.js
 ```
+
+Code layout:
+
+- `src/world/`: renderer, camera and lights (`Stage.js`), scenery (`environment.js`), low-poly model factories (`models.js`)
+- `src/game/`: gameplay (`Round.js` runs one level; `Fly.js`, `Npc.js`, `Food.js`, `Table.js`)
+- `src/ui/`: HTML HUD, menus and result boards over the canvas
+- `src/audio/`: synthesized sound effects and the Web Audio player
+- `src/levels.js`: level layouts and difficulty
 
 Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`). The spec is in `SPEC.md`, tickets are in `.scratch/con-ruoi-game/issues/`.
