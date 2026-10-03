@@ -57,4 +57,7 @@ export const COPY = {
   score: (n) => `Điểm: ${n}`,
   retry: 'Bay lại phát nữa',
   home: 'Về quán',
+  best: 'Kỷ lục',
+  bestScore: (n) => `Kỷ lục: ${n}`,
+  newBest: 'Kỷ lục mới!',
 };

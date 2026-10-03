@@ -24,6 +24,7 @@ test('home screen shows the shop sign and menu, Enter starts level 1', async ({ 
   await expect(page.locator('.title-sign')).toContainText(COPY.slogan);
   await expect(board(page)).toContainText(COPY.menuTitle);
   await expect(board(page)).toContainText(COPY.menu.play[0]);
+  await expect(board(page).locator('.record')).toContainText(COPY.best);
   await startGame(page);
   await expect(hud(page)).toContainText(levelName(0));
   await expect(page.locator('.intro')).toContainText(COPY.intro(0));
@@ -154,9 +155,79 @@ test('finishing all five levels shows the victory board', async ({ page }) => {
   await expect(board(page)).toContainText(COPY.victory);
   await expect(page.locator('.journey-map .stop.done')).toHaveCount(LEVELS.length);
   await expect(board(page).getByRole('button', { name: COPY.retry })).toBeVisible();
+  await expect(board(page)).toContainText(COPY.newBest);
+  const total = await page.evaluate(() => window.__app.totalScore);
   await board(page).getByRole('button', { name: COPY.home }).click();
   await waitForMode(page, 'menu');
   await expect(page.locator('.title-sign')).toContainText(COPY.title);
+  await expect(record(page)).toHaveText(`${COPY.best}:${total}`);
+
+  // The record survives a reload.
+  await page.reload();
+  await page.waitForFunction(() => window.__app);
+  await expect(record(page)).toHaveText(`${COPY.best}:${total}`);
+  await expectNoErrors(errors);
+});
+
+const record = (page) => page.locator('.board .record');
+
+// Eats `count` dishes straight away and returns the level score.
+const eat = (page, count) =>
+  page.evaluate((count) => {
+    const r = window.__app.round;
+    for (let i = 0; i < count; i++) r.onEat(r.foods[i]);
+    return r.score;
+  }, count);
+
+async function loseAllLives(page) {
+  for (let i = 0; i < 3; i++) await strikeFly(page);
+  await waitForMode(page, 'result');
+  await expect(board(page)).toContainText(COPY.gameOver);
+}
+
+test('game over saves the best score, which the home screen shows after a reload', async ({ page }) => {
+  const errors = await openGame(page);
+  await expect(record(page)).toHaveText(`${COPY.best}:0`);
+  await startGame(page);
+  const score = await eat(page, 2);
+  await loseAllLives(page);
+  await expect(board(page)).toContainText(COPY.newBest);
+
+  await page.reload();
+  await page.waitForFunction(() => window.__app);
+  await expect(record(page)).toHaveText(`${COPY.best}:${score}`);
+
+  // A lower score leaves the record alone.
+  await startGame(page);
+  await eat(page, 1);
+  await loseAllLives(page);
+  await expect(board(page)).toContainText(COPY.bestScore(score));
+  await expect(board(page)).not.toContainText(COPY.newBest);
+  await board(page).getByRole('button', { name: COPY.home }).click();
+  await waitForMode(page, 'menu');
+  await expect(record(page)).toHaveText(`${COPY.best}:${score}`);
+  await expectNoErrors(errors);
+});
+
+test('the game still plays and keeps the record for the session when storage is blocked', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'localStorage', {
+      get() {
+        throw new DOMException('Storage is disabled', 'SecurityError');
+      },
+    });
+  });
+  const errors = await openGame(page);
+  await expect(record(page)).toHaveText(`${COPY.best}:0`);
+  await startGame(page);
+  const score = await eat(page, 2);
+  await loseAllLives(page);
+  await expect(board(page)).toContainText(COPY.newBest);
+  await board(page).getByRole('button', { name: COPY.home }).click();
+  await waitForMode(page, 'menu');
+  await expect(record(page)).toHaveText(`${COPY.best}:${score}`);
+  await startGame(page);
+  await expect(hud(page)).toContainText(levelName(0));
   await expectNoErrors(errors);
 });
 

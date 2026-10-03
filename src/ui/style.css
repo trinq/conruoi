@@ -284,6 +284,33 @@ body {
 
 /* ----- home screen ----- */
 
+/* Kỷ lục, chalked into the bottom corner of the menu. */
+.record {
+  justify-self: end;
+  margin-top: 4px;
+  font-size: 22px;
+  color: var(--chalk-dim);
+  transform: rotate(-3deg);
+  font-variant-numeric: tabular-nums;
+}
+
+.record b {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: 28px;
+  color: var(--chalk-yellow);
+}
+
+.board .best {
+  color: var(--chalk-dim);
+}
+
+.board .best.new {
+  color: var(--chalk-pink);
+  font-size: 26px;
+  animation: pop-in 0.4s ease-out 0.3s backwards;
+}
+
 .screen {
   position: absolute;
   inset: 0;

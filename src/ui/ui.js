@@ -275,8 +275,8 @@ export class UI {
     );
   }
 
-  showMenu({ onPlay, onToggleSound, onQuality, audioLocked }) {
-    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked };
+  showMenu({ onPlay, onToggleSound, onQuality, audioLocked, best }) {
+    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked, best };
     this.onToggleSound = onToggleSound;
     this.onQuality = onQuality;
     this.soundItem = this.soundButton(!this.muted);
@@ -293,6 +293,7 @@ export class UI {
         this.soundItem,
         this.qualityButton(),
         hint,
+        el('div', { class: 'record' }, el('span', {}, `${COPY.best}:`), el('b', {}, String(best))),
       ),
     );
     this.menuHint = hint;
@@ -328,13 +329,19 @@ export class UI {
 
   // Between levels: the S-shaped map with the fly heading to the next stop.
   // After the last level the same board becomes the victory board.
-  showLevelComplete({ levelIndex, levelScore, totalScore, lives }, { onNext, onRestart, onMenu }) {
+  // "Kỷ lục mới!" when this game set the record, else the record to beat.
+  bestLine(best, newBest) {
+    return newBest ? el('p', { class: 'best new' }, COPY.newBest) : el('p', { class: 'best' }, COPY.bestScore(best));
+  }
+
+  showLevelComplete({ levelIndex, levelScore, totalScore, lives, best, newBest }, { onNext, onRestart, onMenu }) {
     const last = levelIndex >= LEVELS.length - 1;
     const info = last
       ? [
           el('h2', {}, COPY.victory),
           el('p', { class: 'sub' }, COPY.victorySub),
           el('div', { class: 'stats' }, el('span', {}, COPY.totalScore), el('b', {}, String(totalScore))),
+          this.bestLine(best, newBest),
           el(
             'div',
             { class: 'actions' },
@@ -367,7 +374,7 @@ export class UI {
     );
   }
 
-  showGameOver({ totalScore, levelIndex }, { onRestart, onMenu }) {
+  showGameOver({ totalScore, levelIndex, best, newBest }, { onRestart, onMenu }) {
     this.showScreen(
       'result',
       el(
@@ -376,6 +383,7 @@ export class UI {
         el('h2', {}, COPY.gameOver),
         el('p', { class: 'sub' }, COPY.gameOverSub(levelIndex)),
         el('div', { class: 'stats' }, el('b', {}, COPY.score(totalScore))),
+        this.bestLine(best, newBest),
         el(
           'div',
           { class: 'actions' },

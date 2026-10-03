@@ -34,6 +34,7 @@ Code layout:
 - `src/audio/`: synthesized sound effects and the Web Audio player
 - `src/regions.js`: the five stops of the trip and the dishes each one serves
 - `src/game/dishes.js`: dish catalogue and score tiers
+- `src/bestScore.js`: the best total score ("Kỷ lục"), kept in localStorage when it is available
 - `src/copy.js`: every string the player reads
 - `src/levels.js`: level layouts and difficulty
 

@@ -10,6 +10,7 @@ import { UI } from './ui/ui.js';
 import { LEVELS } from './levels.js';
 import { MAX_LIVES, newGame } from './gameState.js';
 import { COPY } from './copy.js';
+import { readBest, saveBest } from './bestScore.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
@@ -69,6 +70,7 @@ export class App {
       onToggleSound: () => this.toggleSound(),
       onQuality: (level) => this.stage.setQuality(level),
       audioLocked: () => this.audio.locked,
+      best: readBest(),
     });
   }
 
@@ -131,7 +133,10 @@ export class App {
   showLevelComplete(data) {
     this.mode = 'result';
     this.audio.play('jingle');
-    this.ui.showLevelComplete(data, {
+    // The trip ends after the last level, so that total can set the record.
+    const last = data.levelIndex >= LEVELS.length - 1;
+    const newBest = last && saveBest(data.totalScore);
+    this.ui.showLevelComplete({ ...data, best: readBest(), newBest }, {
       onNext: () => this.go({ levelIndex: data.levelIndex + 1, lives: data.lives, totalScore: data.totalScore }),
       onRestart: () => this.go(newGame()),
       onMenu: () => this.ui.fade(() => this.showMenu()),
@@ -140,7 +145,8 @@ export class App {
 
   showGameOver(data) {
     this.mode = 'result';
-    this.ui.showGameOver(data, {
+    const newBest = saveBest(data.totalScore);
+    this.ui.showGameOver({ ...data, best: readBest(), newBest }, {
       onRestart: () => this.go(newGame()),
       onMenu: () => this.ui.fade(() => this.showMenu()),
     });
