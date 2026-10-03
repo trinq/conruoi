@@ -60,6 +60,9 @@ LEVELS.forEach((level, li) => {
     for (const tier of ['high', 'medium', 'low']) {
       if (!served.some((f) => f.tier === tier)) fail(li, `no ${tier} dish on the tables`);
     }
+    for (const id of region.bonus) {
+      if (!served.some((f) => f.bonus === id)) fail(li, `region bonus ${id} is not on the tables`);
+    }
     for (const f of served) {
       if (f.bonus && !region.bonus.includes(f.bonus)) fail(li, `bonus ${f.bonus} is not served in ${level.region}`);
       if (!f.bonus && !['high', 'medium', 'low'].includes(f.tier)) fail(li, `food needs a tier or a bonus dish`);

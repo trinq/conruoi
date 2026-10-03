@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Alley scene with tin roofs, plastic signs and many motorbikes, afternoon light
-- [ ] Hủ tiếu and cơm tấm models (bánh mì, chè reused)
-- [ ] Level 4 uses them with the swatter introduced; level check passes
+- [x] Alley scene with tin roofs, plastic signs and many motorbikes, afternoon light
+- [x] Hủ tiếu and cơm tấm models (bánh mì, chè reused)
+- [x] Level 4 uses them with the swatter introduced; level check passes

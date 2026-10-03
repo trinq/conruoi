@@ -198,7 +198,7 @@ export const LEVELS = [
         w: 2.6,
         d: 1.5,
         foods: [
-          { bonus: 'che', dx: -0.6, dz: 0 },
+          { bonus: 'xien-que', dx: -0.6, dz: 0 },
           { tier: 'high', dx: 0.6, dz: 0.1 },
         ],
       },

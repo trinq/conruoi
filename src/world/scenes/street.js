@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mat, mesh } from '../lowpoly.js';
+import { bakeStatic } from '../bake.js';
 
 // Shared street layout: shop houses along the back, a pavement (the play
 // area sits on it) and a road along the front where motorbikes pass.
@@ -102,7 +103,8 @@ export function traffic(rand, makeBike, count = 6) {
   const group = new THREE.Group();
   for (let i = 0; i < count; i++) {
     const dir = i % 2 === 0 ? 1 : -1;
-    const bike = makeBike(rand);
+    // One mesh per material instead of one per part.
+    const bike = bakeStatic(makeBike(rand));
     bike.position.set(-35 + rand() * 70, 0, dir > 0 ? 8.4 : 6.6);
     bike.rotation.y = dir > 0 ? 0 : Math.PI;
     bike.userData.speed = dir * (5 + rand() * 4);

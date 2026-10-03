@@ -1,234 +1,9 @@
 import * as THREE from 'three';
-import { mat, mesh, jitter, range, pick, textTexture } from './lowpoly.js';
+import { mat, mesh, jitter, range, pick } from './lowpoly.js';
 import { bakeStatic } from './bake.js';
 
 // Low-poly model factories. Units are metres-ish; every model's origin sits
 // on the ground (or on the surface it stands on) and faces +z.
-
-const GREENS = ['#6cc644', '#5fb83b', '#7fd34e', '#58ad36'];
-const PINKS = ['#f6a8c4', '#f39bbb', '#f8b8cf'];
-
-// ----- scenery -------------------------------------------------------------
-
-export function tree(rand, { blossom = false, pinkCanopy = false } = {}) {
-  const g = new THREE.Group();
-  const h = range(rand, 1.0, 1.6);
-  const trunk = mesh(new THREE.CylinderGeometry(0.1, 0.17, h, 6), mat('#8a5a33'));
-  trunk.position.y = h / 2;
-  g.add(trunk);
-
-  const colors = pinkCanopy ? PINKS : GREENS;
-  const blobs = pinkCanopy ? 3 : 1 + Math.floor(rand() * 3);
-  for (let i = 0; i < blobs; i++) {
-    const r = range(rand, 0.7, 1.05) * (i === 0 ? 1 : 0.7);
-    const canopy = mesh(jitter(new THREE.IcosahedronGeometry(r, 0), r * 0.18, rand), mat(pick(rand, colors)));
-    canopy.position.set(range(rand, -0.4, 0.4) * (i > 0), h + r * 0.7 + i * 0.25, range(rand, -0.4, 0.4) * (i > 0));
-    canopy.rotation.set(rand() * 3, rand() * 3, rand() * 3);
-    g.add(canopy);
-    if (blossom) {
-      for (let k = 0; k < 6; k++) {
-        const dot = mesh(new THREE.IcosahedronGeometry(0.07, 0), mat('#fbe3ec'), { cast: false });
-        const dir = new THREE.Vector3(rand() - 0.5, rand() * 0.8, rand() - 0.5).normalize();
-        dot.position.copy(canopy.position).addScaledVector(dir, r * 0.95);
-        g.add(dot);
-      }
-    }
-  }
-  return g;
-}
-
-export function pine(rand) {
-  const g = new THREE.Group();
-  const trunk = mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.6, 6), mat('#7a4b2a'));
-  trunk.position.y = 0.3;
-  g.add(trunk);
-  const color = pick(rand, ['#2f8f4e', '#2a7f45', '#379a55']);
-  for (let i = 0; i < 3; i++) {
-    const r = 0.9 - i * 0.22;
-    const cone = mesh(new THREE.ConeGeometry(r, 1.0, 7), mat(color));
-    cone.position.y = 0.9 + i * 0.55;
-    cone.rotation.y = rand() * 3;
-    g.add(cone);
-  }
-  g.scale.setScalar(range(rand, 0.9, 1.3));
-  return g;
-}
-
-export function bush(rand) {
-  const r = range(rand, 0.35, 0.6);
-  const b = mesh(jitter(new THREE.IcosahedronGeometry(r, 0), r * 0.15, rand), mat(pick(rand, GREENS)));
-  b.scale.y = 0.7;
-  b.position.y = r * 0.5;
-  return b;
-}
-
-export function rock(rand) {
-  const r = range(rand, 0.15, 0.4);
-  const m = mesh(jitter(new THREE.DodecahedronGeometry(r, 0), r * 0.25, rand), mat(pick(rand, ['#9aa1a6', '#8a9196', '#b0b6ba'])));
-  m.scale.y = 0.6;
-  m.position.y = r * 0.3;
-  m.rotation.y = rand() * 6;
-  return m;
-}
-
-export function crate() {
-  const g = new THREE.Group();
-  const box = mesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), mat('#b9824a'));
-  box.position.y = 0.2;
-  g.add(box);
-  const band = mesh(new THREE.BoxGeometry(0.52, 0.06, 0.52), mat('#8a5a33'));
-  band.position.y = 0.3;
-  g.add(band);
-  return g;
-}
-
-export function barrel() {
-  const g = new THREE.Group();
-  const body = mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.55, 8), mat('#a86b3c'));
-  body.position.y = 0.275;
-  g.add(body);
-  for (const y of [0.12, 0.43]) {
-    const hoop = mesh(new THREE.CylinderGeometry(0.255, 0.255, 0.05, 8), mat('#5b5f63'));
-    hoop.position.y = y;
-    g.add(hoop);
-  }
-  return g;
-}
-
-// Food stall with a striped awning and a name board.
-export function stall(name) {
-  const g = new THREE.Group();
-  const wood = mat('#b77a45');
-  const darkWood = mat('#7d4f2b');
-
-  const counter = mesh(new THREE.BoxGeometry(3.4, 0.9, 0.8), wood);
-  counter.position.set(0, 0.45, 0.2);
-  g.add(counter);
-  const top = mesh(new THREE.BoxGeometry(3.6, 0.08, 0.95), darkWood);
-  top.position.set(0, 0.94, 0.2);
-  g.add(top);
-  const back = mesh(new THREE.BoxGeometry(3.4, 2.2, 0.15), mat('#e9d7b5'));
-  back.position.set(0, 1.1, -0.6);
-  g.add(back);
-
-  for (const x of [-1.7, 1.7]) {
-    for (const z of [-0.6, 0.6]) {
-      const post = mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 6), darkWood);
-      post.position.set(x, 1.2, z);
-      g.add(post);
-    }
-  }
-
-  // Awning: alternating stripes tilted toward the customer.
-  const stripes = 9;
-  const width = 3.9 / stripes;
-  for (let i = 0; i < stripes; i++) {
-    const s = mesh(new THREE.BoxGeometry(width, 0.06, 1.7), mat(i % 2 ? '#fff4e0' : '#3d7fd6'));
-    s.position.set(-1.95 + width * (i + 0.5), 2.45, 0.15);
-    s.rotation.x = 0.28;
-    g.add(s);
-    const flap = mesh(new THREE.BoxGeometry(width, 0.28, 0.05), mat(i % 2 ? '#fff4e0' : '#3d7fd6'));
-    flap.position.set(s.position.x, 2.1, 1.0);
-    g.add(flap);
-  }
-
-  const board = mesh(new THREE.BoxGeometry(2.4, 0.55, 0.08), darkWood);
-  board.position.set(0, 2.95, -0.3);
-  g.add(board);
-  const label = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.3, 0.48),
-    new THREE.MeshBasicMaterial({
-      map: textTexture(name, {
-        width: 768,
-        height: 160,
-        font: '60px "Paytone One", sans-serif',
-        background: '#7d4f2b',
-        color: '#ffe9b0',
-      }),
-    }),
-  );
-  label.position.set(0, 2.95, -0.25);
-  g.add(label);
-
-  // A big pot of broth and some bowls on the counter.
-  const pot = mesh(new THREE.CylinderGeometry(0.32, 0.28, 0.45, 10), mat('#aeb6bd', { roughness: 0.4 }));
-  pot.position.set(-0.9, 1.2, 0.15);
-  g.add(pot);
-  const broth = mesh(new THREE.CircleGeometry(0.29, 10), mat('#d9a85b'), { cast: false });
-  broth.rotation.x = -Math.PI / 2;
-  broth.position.set(-0.9, 1.43, 0.15);
-  g.add(broth);
-  for (let i = 0; i < 3; i++) {
-    const b = bowlShell('#3a6fb0');
-    b.position.set(0.3 + i * 0.45, 0.98, 0.25);
-    b.scale.setScalar(0.8);
-    g.add(b);
-  }
-  return g;
-}
-
-export function lantern() {
-  const g = new THREE.Group();
-  const body = mesh(
-    new THREE.IcosahedronGeometry(0.2, 1),
-    new THREE.MeshStandardMaterial({ color: '#e2483d', emissive: '#ff5a2a', emissiveIntensity: 1.2, flatShading: true }),
-    { cast: false },
-  );
-  body.scale.y = 1.25;
-  g.add(body);
-  for (const y of [-0.24, 0.24]) {
-    const cap = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.05, 8), mat('#ffd23f'), { cast: false });
-    cap.position.y = y;
-    g.add(cap);
-  }
-  return g;
-}
-
-// Irregular pond with a sandy shore and lily pads.
-export function pond(rand, radius) {
-  const g = new THREE.Group();
-  const outline = (scale) => {
-    const shape = new THREE.Shape();
-    const n = 22;
-    for (let i = 0; i <= n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      const r = radius * scale * (1 + 0.12 * Math.sin(a * 3 + 1) + 0.06 * Math.sin(a * 5));
-      const p = [Math.cos(a) * r, Math.sin(a) * r * 0.75];
-      if (i === 0) shape.moveTo(...p);
-      else shape.lineTo(...p);
-    }
-    return new THREE.ShapeGeometry(shape);
-  };
-  const shore = mesh(outline(1.12), mat('#e8cf98'), { cast: false });
-  shore.rotation.x = -Math.PI / 2;
-  shore.position.y = 0.015;
-  g.add(shore);
-  const water = mesh(
-    outline(1),
-    new THREE.MeshStandardMaterial({ color: '#4fb8e8', roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.92 }),
-    { cast: false },
-  );
-  water.rotation.x = -Math.PI / 2;
-  water.position.y = 0.03;
-  g.add(water);
-  g.userData.pads = [];
-  for (let i = 0; i < 7; i++) {
-    const pad = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.02, 8, 1, false, 0.3, Math.PI * 1.8), mat('#4caf50'), { cast: false });
-    const a = rand() * Math.PI * 2;
-    const r = rand() * radius * 0.75;
-    pad.position.set(Math.cos(a) * r, 0.05, Math.sin(a) * r * 0.7);
-    pad.rotation.y = rand() * 6;
-    pad.userData.phase = rand() * 6;
-    g.add(pad);
-    g.userData.pads.push(pad);
-    if (rand() < 0.5) {
-      const flower = mesh(new THREE.IcosahedronGeometry(0.06, 0), mat('#f8b8cf'), { cast: false });
-      flower.position.set(0.05, 0.05, 0);
-      pad.add(flower);
-    }
-  }
-  return g;
-}
 
 // ----- furniture -----------------------------------------------------------
 
@@ -304,49 +79,6 @@ function bits(rand, group, count, makeGeometry, color, y, spread) {
     m.rotation.set(rand() * 0.4, rand() * 6, rand() * 0.4);
     group.add(m);
   }
-}
-
-// Noodle soup bowl. `contents` is hidden once the dish has been eaten.
-function noodleBowl(rand, broth, band) {
-  const g = bowlShell(band);
-  const contents = new THREE.Group();
-  const soup = mesh(new THREE.CircleGeometry(0.27, 12), mat(broth), { cast: false });
-  soup.rotation.x = -Math.PI / 2;
-  soup.position.y = 0.16;
-  contents.add(soup);
-  bits(rand, contents, 7, () => new THREE.BoxGeometry(0.2, 0.02, 0.025), '#fff6d8', 0.165, 0.15);
-  bits(rand, contents, 3, () => new THREE.BoxGeometry(0.11, 0.025, 0.08), '#b5654a', 0.17, 0.14);
-  bits(rand, contents, 6, () => new THREE.IcosahedronGeometry(0.035, 0), '#43a047', 0.175, 0.18);
-  bits(rand, contents, 2, () => new THREE.CylinderGeometry(0.025, 0.025, 0.01, 6), '#e53935', 0.18, 0.15);
-  g.add(contents);
-  g.userData.contents = contents;
-  return g;
-}
-
-function comTam(rand) {
-  const g = new THREE.Group();
-  const plate = mesh(new THREE.CylinderGeometry(0.34, 0.26, 0.05, 14), mat('#f7f4ec', { roughness: 0.5 }));
-  plate.position.y = 0.025;
-  g.add(plate);
-  const contents = new THREE.Group();
-  const rice = mesh(jitter(new THREE.IcosahedronGeometry(0.15, 1), 0.015, rand), mat('#ffffff'));
-  rice.scale.y = 0.55;
-  rice.position.set(-0.09, 0.08, 0.02);
-  contents.add(rice);
-  const white = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.02, 10), mat('#ffffff'));
-  white.position.set(0.12, 0.06, 0.11);
-  contents.add(white);
-  const yolk = mesh(new THREE.SphereGeometry(0.045, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#ffc22e'));
-  yolk.position.set(0.12, 0.07, 0.11);
-  contents.add(yolk);
-  const pork = mesh(new THREE.BoxGeometry(0.24, 0.04, 0.13), mat('#a5562e'));
-  pork.position.set(0.12, 0.075, -0.09);
-  pork.rotation.y = 0.4;
-  contents.add(pork);
-  bits(rand, contents, 3, () => new THREE.CylinderGeometry(0.04, 0.04, 0.015, 8), '#7cc96b', 0.06, 0.25);
-  g.add(contents);
-  g.userData.contents = contents;
-  return g;
 }
 
 // Chè ba màu in a tall glass.
@@ -689,10 +421,319 @@ function banhMi(rand) {
   return g;
 }
 
+// Hủ tiếu Nam Vang: clear pork broth over thin, glassy rice noodles,
+// topped with shrimp, sliced pork, minced pork, quail eggs, chives and
+// fried garlic.
+function huTieu(rand) {
+  const g = bowlShell('#e07a1f');
+  const contents = new THREE.Group();
+  soup(contents, '#e9d9a6');
+  bits(rand, contents, 14, lyingNoodle(0.2, 0.007), '#f6f2e6', 0.165, 0.15);
+  // Shrimp curled into pink half-rings.
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + rand();
+    const shrimp = mesh(new THREE.TorusGeometry(0.04, 0.017, 4, 8, Math.PI * 1.4), mat('#f2875a'), { cast: false });
+    shrimp.rotation.set(-Math.PI / 2, 0, a);
+    shrimp.position.set(Math.cos(a) * 0.13, 0.18, Math.sin(a) * 0.13);
+    contents.add(shrimp);
+    const tail = mesh(new THREE.BoxGeometry(0.025, 0.012, 0.03), mat('#e2563a'), { cast: false });
+    tail.position.set(shrimp.position.x + Math.cos(a + 1.2) * 0.04, 0.185, shrimp.position.z + Math.sin(a + 1.2) * 0.04);
+    contents.add(tail);
+  }
+  bits(rand, contents, 3, () => new THREE.BoxGeometry(0.11, 0.014, 0.07), '#f0d0c0', 0.172, 0.12);
+  bits(rand, contents, 10, () => new THREE.IcosahedronGeometry(0.018, 0), '#9a6448', 0.172, 0.1);
+  for (let i = 0; i < 2; i++) {
+    const egg = mesh(new THREE.SphereGeometry(0.032, 8, 5), mat('#f6f0de'), { cast: false });
+    egg.scale.y = 0.8;
+    egg.position.set(-0.05 + i * 0.09, 0.18, -0.09 + i * 0.03);
+    contents.add(egg);
+  }
+  bits(rand, contents, 10, lyingNoodle(0.06, 0.008), '#3f9a32', 0.182, 0.18);
+  bits(rand, contents, 12, () => new THREE.IcosahedronGeometry(0.01, 0), '#d9a23a', 0.185, 0.16);
+  // A few torn lettuce leaves at the side of the bowl.
+  for (let i = 0; i < 3; i++) {
+    const leaf = mesh(new THREE.BoxGeometry(0.07, 0.008, 0.05), mat('#8fd15a'), { cast: false });
+    leaf.position.set(0.17 + i * 0.02, 0.19 + i * 0.006, 0.06 + i * 0.03);
+    leaf.rotation.set(0.3, rand() * 3, 0.2);
+    contents.add(leaf);
+  }
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Cơm tấm sườn bì chả: broken rice on a plate with a grilled pork chop,
+// shredded pork skin, a slab of steamed egg meatloaf, a fried egg, pickles
+// and cucumber, scallion oil on the rice, and a cup of fish sauce.
+function comTamSuon(rand) {
+  const g = new THREE.Group();
+  const plate = mesh(new THREE.CylinderGeometry(0.36, 0.28, 0.04, 16), mat('#f7f4ec', { roughness: 0.5 }));
+  plate.scale.z = 0.82;
+  plate.position.y = 0.02;
+  g.add(plate);
+  const cup = bowlShell('#3a6fb0');
+  cup.scale.setScalar(0.32);
+  cup.position.set(0.3, 0, -0.24);
+  g.add(cup);
+
+  const contents = new THREE.Group();
+  const rice = mesh(jitter(new THREE.IcosahedronGeometry(0.14, 1), 0.012, rand), mat('#fbfaf0'));
+  rice.scale.set(1.1, 0.5, 1);
+  rice.position.set(-0.12, 0.07, 0.03);
+  contents.add(rice);
+  moundBits(rand, contents, 8, () => new THREE.BoxGeometry(0.03, 0.01, 0.012), '#5fbf3a', 0.07, 0.13, 0.07);
+  // Sườn: a grilled chop with the bone along one edge and char marks.
+  const chop = mesh(new THREE.BoxGeometry(0.24, 0.035, 0.14), mat('#9a4a22'));
+  chop.position.set(0.1, 0.06, -0.06);
+  chop.rotation.y = 0.35;
+  contents.add(chop);
+  for (let i = 0; i < 3; i++) {
+    const mark = mesh(new THREE.BoxGeometry(0.02, 0.008, 0.13), mat('#4a2412'), { cast: false });
+    mark.position.set(-0.07 + i * 0.07, 0.02, 0);
+    chop.add(mark);
+  }
+  const bone = mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 5), mat('#efe2c8'), { cast: false });
+  bone.rotation.z = Math.PI / 2;
+  bone.position.set(0, 0.012, -0.07);
+  chop.add(bone);
+  // Bì: a nest of pale shredded skin.
+  bits(rand, contents, 12, lyingNoodle(0.08, 0.006), '#efe0b8', 0.05, 0.05);
+  for (const c of contents.children.slice(-12)) c.position.add(new THREE.Vector3(-0.05, 0, -0.17));
+  // Chả trứng: steamed egg meatloaf with its yellow top.
+  const cha = mesh(new THREE.BoxGeometry(0.1, 0.045, 0.08), mat('#c99a6a'));
+  cha.position.set(0.17, 0.06, 0.1);
+  contents.add(cha);
+  const chaTop = mesh(new THREE.BoxGeometry(0.1, 0.012, 0.08), mat('#f2b43a'), { cast: false });
+  chaTop.position.set(0.17, 0.088, 0.1);
+  contents.add(chaTop);
+  // Trứng ốp la on the rice.
+  const white = mesh(new THREE.CylinderGeometry(0.075, 0.08, 0.012, 10), mat('#ffffff'), { cast: false });
+  white.position.set(-0.13, 0.135, 0.06);
+  white.rotation.x = -0.15;
+  contents.add(white);
+  const yolk = mesh(new THREE.SphereGeometry(0.032, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#ffb21e'), { cast: false });
+  yolk.position.set(-0.13, 0.14, 0.06);
+  contents.add(yolk);
+  // Đồ chua and cucumber slices along the rim.
+  for (let i = 0; i < 6; i++) {
+    const stick = mesh(new THREE.BoxGeometry(0.06, 0.012, 0.012), mat(i % 2 ? '#f08a24' : '#f4f0e0'), { cast: false });
+    stick.position.set(0.02 + range(rand, -0.03, 0.03), 0.05, 0.2 + range(rand, -0.02, 0.02));
+    stick.rotation.y = range(rand, -0.6, 0.6);
+    contents.add(stick);
+  }
+  for (let i = 0; i < 3; i++) {
+    const slice = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.012, 8), mat('#a8d878'), { cast: false });
+    slice.position.set(-0.26 + i * 0.04, 0.05 + i * 0.004, -0.1 + i * 0.05);
+    contents.add(slice);
+  }
+  const sauce = new THREE.Group();
+  soup(sauce, '#d9893a');
+  sauce.scale.setScalar(0.32);
+  sauce.position.copy(cup.position);
+  contents.add(sauce);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Lẩu: a hot pot of sour, chilli-red broth on a little gas stove, full of
+// shrimp, squid rings, mushrooms, tomato and greens.
+function lau(rand) {
+  const g = new THREE.Group();
+  const stove = mesh(new THREE.BoxGeometry(0.4, 0.09, 0.34), mat('#2b2b30', { roughness: 0.4 }));
+  stove.position.y = 0.045;
+  g.add(stove);
+  const knob = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.03, 8), mat('#d62a1e'), { cast: false });
+  knob.rotation.x = Math.PI / 2;
+  knob.position.set(0.12, 0.045, 0.18);
+  g.add(knob);
+  const grate = mesh(new THREE.TorusGeometry(0.13, 0.012, 4, 10), mat('#55595e'), { cast: false });
+  grate.rotation.x = -Math.PI / 2;
+  grate.position.y = 0.095;
+  g.add(grate);
+  const steel = mat('#c9cfd4', { roughness: 0.3, metalness: 0.5, side: THREE.DoubleSide });
+  const pot = mesh(new THREE.CylinderGeometry(0.29, 0.26, 0.17, 16, 1, true), steel);
+  pot.position.y = 0.185;
+  g.add(pot);
+  const bottom = mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.02, 16), mat('#aeb5bb', { roughness: 0.3, metalness: 0.5 }));
+  bottom.position.y = 0.11;
+  g.add(bottom);
+  for (const side of [-1, 1]) {
+    const handle = mesh(new THREE.TorusGeometry(0.05, 0.012, 4, 8, Math.PI), mat('#2b2b30'));
+    handle.rotation.set(0, side * (Math.PI / 2), 0);
+    handle.position.set(side * 0.3, 0.24, 0);
+    g.add(handle);
+  }
+
+  const contents = new THREE.Group();
+  soup(contents, '#d9502a', 0.275, 0.24);
+  // Chilli oil floating on top.
+  bits(rand, contents, 8, () => new THREE.CircleGeometry(0.03, 6).rotateX(-Math.PI / 2), '#b8261a', 0.243, 0.22);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + rand();
+    const shrimp = mesh(new THREE.TorusGeometry(0.045, 0.018, 4, 8, Math.PI * 1.4), mat('#f2875a'), { cast: false });
+    shrimp.rotation.set(-Math.PI / 2, 0, a);
+    shrimp.position.set(Math.cos(a) * 0.17, 0.255, Math.sin(a) * 0.17);
+    contents.add(shrimp);
+  }
+  bits(rand, contents, 5, () => new THREE.TorusGeometry(0.03, 0.012, 4, 8).rotateX(Math.PI / 2), '#f6f0e4', 0.25, 0.16);
+  // Enoki: a bunch of thin white stems with tiny caps.
+  for (let i = 0; i < 7; i++) {
+    const stem = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.12, 4), mat('#f4efe0'), { cast: false });
+    stem.position.set(-0.08 + i * 0.012, 0.275, 0.05 + (i % 2) * 0.01);
+    stem.rotation.z = 1.2 + (i % 3) * 0.08;
+    contents.add(stem);
+  }
+  bits(rand, contents, 4, () => new THREE.SphereGeometry(0.03, 6, 4, 0, Math.PI * 2, 0, Math.PI / 2), '#8a5a36', 0.248, 0.18);
+  bits(rand, contents, 3, () => new THREE.CylinderGeometry(0.045, 0.045, 0.02, 3, 1, false, 0, Math.PI), '#e8402a', 0.252, 0.15);
+  bits(rand, contents, 6, () => new THREE.BoxGeometry(0.09, 0.012, 0.04), '#3f9a32', 0.255, 0.2);
+  bits(rand, contents, 4, () => new THREE.CylinderGeometry(0.01, 0.01, 0.006, 6), '#e53935', 0.262, 0.2);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Ốc len xào dừa: a heap of spiral snail shells in a creamy coconut sauce
+// with rau răm and chilli, and a saucer of salt, pepper and lime.
+function ocXao(rand) {
+  const g = new THREE.Group();
+  const plate = mesh(new THREE.CylinderGeometry(0.33, 0.26, 0.04, 16), mat('#f7f4ec', { roughness: 0.5 }));
+  plate.scale.z = 0.78;
+  plate.position.y = 0.02;
+  g.add(plate);
+  const saucer = mesh(new THREE.CylinderGeometry(0.07, 0.05, 0.025, 10), mat('#f7f4ec', { roughness: 0.5 }));
+  saucer.position.set(0.3, 0.0125, -0.22);
+  g.add(saucer);
+
+  const contents = new THREE.Group();
+  const sauce = mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.012, 14), mat('#f0c06a'), { cast: false });
+  sauce.scale.z = 0.78;
+  sauce.position.y = 0.045;
+  contents.add(sauce);
+  // Each shell: a long, thin, twisted cone with a pale band, lying in a
+  // loose heap.
+  const shellGeo = new THREE.ConeGeometry(0.03, 0.12, 6, 3);
+  shellGeo.rotateX(Math.PI / 2);
+  for (let i = 0; i < 18; i++) {
+    const a = rand() * Math.PI * 2;
+    const r = Math.sqrt(rand()) * 0.17;
+    const layer = r < 0.08 ? 1 : 0;
+    const shell = mesh(shellGeo, mat(pick(rand, ['#4a3a2a', '#5c4632', '#3d3026'])), { cast: false });
+    shell.position.set(Math.cos(a) * r, 0.075 + layer * 0.04 + rand() * 0.015, Math.sin(a) * r * 0.78);
+    shell.rotation.set(range(rand, -0.4, 0.2), rand() * 6, range(rand, -0.3, 0.3));
+    contents.add(shell);
+    const band = mesh(new THREE.TorusGeometry(0.022, 0.006, 3, 6), mat('#d9c9a8'), { cast: false });
+    band.position.copy(shell.position);
+    band.rotation.copy(shell.rotation);
+    band.translateZ(0.015);
+    contents.add(band);
+  }
+  bits(rand, contents, 10, () => new THREE.BoxGeometry(0.05, 0.008, 0.018), '#3f8f2c', 0.12, 0.18);
+  bits(rand, contents, 5, () => new THREE.CylinderGeometry(0.009, 0.009, 0.05, 5).rotateZ(Math.PI / 2), '#e53935', 0.12, 0.16);
+  const salt = mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.01, 10), mat('#d8d2c2'), { cast: false });
+  salt.position.set(0.3, 0.028, -0.22);
+  contents.add(salt);
+  const lime = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.03, 8, 1, false, 0, Math.PI), mat('#7cc242'), { cast: false });
+  lime.rotation.set(Math.PI / 2, 0, 0.6);
+  lime.position.set(0.33, 0.045, -0.2);
+  contents.add(lime);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bánh tráng nướng: a round of rice paper grilled crisp over charcoal,
+// spread with egg and topped with scallions, dried shrimp, sausage slices
+// and zigzags of mayonnaise and chilli sauce, on a square of paper.
+function banhTrangNuong(rand) {
+  const g = new THREE.Group();
+  const paper = mesh(new THREE.BoxGeometry(0.48, 0.008, 0.48), mat('#efe6d0'));
+  paper.position.y = 0.004;
+  paper.rotation.y = 0.3;
+  g.add(paper);
+  const contents = new THREE.Group();
+  const sheet = mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.012, 16), mat('#f0d9a0'));
+  sheet.position.y = 0.014;
+  contents.add(sheet);
+  // Char spots round the edge.
+  for (let i = 0; i < 9; i++) {
+    const a = rand() * Math.PI * 2;
+    const spot = mesh(new THREE.CircleGeometry(0.02, 5).rotateX(-Math.PI / 2), mat('#8a5a2a'), { cast: false });
+    spot.position.set(Math.cos(a) * 0.18, 0.021, Math.sin(a) * 0.18);
+    contents.add(spot);
+  }
+  const egg = mesh(jitter(new THREE.CylinderGeometry(0.16, 0.16, 0.01, 12), 0.015, rand), mat('#f2a72e'), { cast: false });
+  egg.position.y = 0.024;
+  contents.add(egg);
+  bits(rand, contents, 12, () => new THREE.BoxGeometry(0.03, 0.01, 0.012), '#4caf50', 0.032, 0.15);
+  bits(rand, contents, 10, () => new THREE.IcosahedronGeometry(0.012, 0), '#e8743a', 0.034, 0.14);
+  bits(rand, contents, 5, () => new THREE.CylinderGeometry(0.022, 0.022, 0.01, 8), '#c0392b', 0.034, 0.12);
+  for (const [colour, z] of [
+    ['#fff5d6', -0.06],
+    ['#e53935', 0.06],
+  ]) {
+    for (let i = 0; i < 5; i++) {
+      const zig = mesh(new THREE.BoxGeometry(0.075, 0.008, 0.012), mat(colour), { cast: false });
+      zig.position.set(-0.12 + i * 0.06, 0.04, z);
+      zig.rotation.y = i % 2 ? 0.7 : -0.7;
+      contents.add(zig);
+    }
+  }
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Xiên que: skewers of fried fish balls and scored sausages in a paper
+// tray, with a dab of chilli sauce. Eaten, only the bare sticks are left.
+function xienQue(rand) {
+  const g = new THREE.Group();
+  const tray = mesh(new THREE.BoxGeometry(0.4, 0.05, 0.26), mat('#e9dcc0'));
+  tray.position.y = 0.025;
+  g.add(tray);
+  const contents = new THREE.Group();
+  const stick = mat('#d9b97a');
+  for (let i = 0; i < 4; i++) {
+    const z = -0.08 + i * 0.055;
+    const yaw = range(rand, -0.15, 0.15);
+    const skewer = new THREE.Group();
+    skewer.position.set(0, 0.07, z);
+    skewer.rotation.y = yaw;
+    const s = mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.46, 4), stick, { cast: false });
+    s.rotation.z = Math.PI / 2;
+    skewer.add(s);
+    g.add(skewer);
+    const food = skewer.clone(false);
+    food.position.copy(skewer.position);
+    if (i % 2 === 0) {
+      for (let k = 0; k < 4; k++) {
+        const ball = mesh(new THREE.IcosahedronGeometry(0.03, 1), mat('#c98a3a'), { cast: false });
+        ball.position.x = -0.1 + k * 0.065;
+        food.add(ball);
+      }
+    } else {
+      for (let k = 0; k < 2; k++) {
+        const sausage = mesh(new THREE.CapsuleGeometry(0.022, 0.07, 2, 6).rotateZ(Math.PI / 2), mat('#d0453a'), { cast: false });
+        sausage.position.x = -0.07 + k * 0.12;
+        food.add(sausage);
+        for (let c = 0; c < 3; c++) {
+          const cut = mesh(new THREE.BoxGeometry(0.006, 0.01, 0.03), mat('#8a2a20'), { cast: false });
+          cut.position.set(sausage.position.x - 0.03 + c * 0.03, 0.02, 0);
+          food.add(cut);
+        }
+      }
+    }
+    contents.add(food);
+  }
+  const chilli = mesh(jitter(new THREE.CylinderGeometry(0.04, 0.05, 0.015, 8), 0.008, rand), mat('#d9301f'), { cast: false });
+  chilli.position.set(0.15, 0.06, 0.09);
+  contents.add(chilli);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
 const DISH_BUILDERS = {
-  pho: (rand) => noodleBowl(rand, '#d9a85b', '#3a6fb0'),
-  bun: (rand) => noodleBowl(rand, '#d9542b', '#2e8b57'),
-  com: (rand) => comTam(rand),
   che: () => che(),
   'pho-bo': phoBo,
   'bun-cha': bunCha,
@@ -703,6 +744,12 @@ const DISH_BUILDERS = {
   'cao-lau': caoLau,
   'mi-quang': miQuang,
   'banh-mi': banhMi,
+  'hu-tieu': huTieu,
+  'com-tam': comTamSuon,
+  lau,
+  'oc-xao': ocXao,
+  'banh-trang-nuong': banhTrangNuong,
+  'xien-que': xienQue,
 };
 
 // Builds a dish model; every dish exposes `userData.contents`, hidden once
@@ -923,8 +970,22 @@ export function person(rand, archetype = pickArchetype(rand)) {
   chopsticks.position.set(0, -0.48, 0.15);
   rightArm.add(chopsticks);
 
+  // Merge the parts that never move apart, keeping the head and arms as
+  // pivots for the animations and the chopsticks separate to hide them.
+  bakeParts(g, [head, leftArm, rightArm]);
+  bakeParts(head);
+  bakeParts(leftArm);
+  bakeParts(rightArm, [chopsticks]);
+
   g.userData = { head, leftArm, rightArm, chopsticks, skin, shirt: sleeve, archetype };
   return g;
+}
+
+// Replaces `parent`'s children (except `keep`) with their baked meshes.
+function bakeParts(parent, keep = []) {
+  const loose = new THREE.Group();
+  for (const c of [...parent.children]) if (!keep.includes(c)) loose.add(c);
+  parent.add(bakeStatic(loose));
 }
 
 // Open palm seen from above, used for the slap.
@@ -997,6 +1058,87 @@ export function nanFan() {
   pivot.add(merged);
 
   g.userData.pivot = pivot;
+  return g;
+}
+
+// Plastic colours electric swatters come in at every market stall.
+export const SWATTER_COLOURS = ['#f2b705', '#2f7fd6', '#e8622a', '#3fae5a'];
+
+// Vợt muỗi điện: an oval plastic frame round a silver wire grid, a neck
+// and a chunky handle with the battery box, a red button and an LED. Lies
+// flat like the nan fan: head centred on the origin, handle toward -z, the
+// head hanging from `userData.pivot` at the grip. The grid has its own
+// material (`userData.grid`) so it can glow while the swatter is live.
+export function swatter(colour = SWATTER_COLOURS[0]) {
+  const g = new THREE.Group();
+  const pivot = new THREE.Group();
+  const RX = 0.36;
+  const RZ = 0.46;
+  const grip = RZ + 0.5;
+  pivot.position.z = -grip;
+  g.add(pivot);
+
+  const head = new THREE.Group();
+  const plastic = mat(colour, { roughness: 0.45 });
+  // A unit ring stretched into the oval; the tube is about 6 cm wide.
+  const frame = mesh(new THREE.TorusGeometry(1, 0.16, 4, 22), plastic);
+  frame.rotation.x = Math.PI / 2;
+  frame.scale.set(RX, RZ, 0.4);
+  head.add(frame);
+  // Inside the frame: a fine outer mesh on each face and thicker live
+  // wires between them.
+  const gridMat = new THREE.MeshStandardMaterial({
+    color: '#cfd6dc',
+    roughness: 0.3,
+    metalness: 0.6,
+    flatShading: true,
+    emissive: '#7fd4ff',
+    emissiveIntensity: 0,
+  });
+  const span = (c, r, R) => 2 * R * Math.sqrt(Math.max(0, 1 - (c / r) ** 2)) * 0.94;
+  for (let c = -RX + 0.05; c < RX - 0.02; c += 0.06) {
+    const len = span(c, RX, RZ);
+    for (const y of [-0.018, 0.018]) {
+      const wire = mesh(new THREE.BoxGeometry(0.008, 0.006, len), gridMat, { cast: false });
+      wire.position.set(c, y, 0);
+      head.add(wire);
+    }
+  }
+  for (let c = -RZ + 0.05; c < RZ - 0.02; c += 0.06) {
+    const len = span(c, RZ, RX);
+    for (const y of [-0.018, 0.018]) {
+      const wire = mesh(new THREE.BoxGeometry(len, 0.006, 0.008), gridMat, { cast: false });
+      wire.position.set(0, y, c);
+      head.add(wire);
+    }
+  }
+  for (let c = -RX + 0.11; c < RX - 0.08; c += 0.12) {
+    const wire = mesh(new THREE.BoxGeometry(0.014, 0.014, span(c, RX, RZ)), gridMat, { cast: false });
+    wire.position.x = c;
+    head.add(wire);
+  }
+  const neck = mesh(new THREE.BoxGeometry(0.12, 0.06, 0.2), plastic);
+  neck.position.z = -RZ - 0.06;
+  head.add(neck);
+  const handle = mesh(new THREE.BoxGeometry(0.1, 0.075, 0.46), plastic);
+  handle.position.z = -RZ - 0.38;
+  head.add(handle);
+  const battery = mesh(new THREE.BoxGeometry(0.12, 0.09, 0.2), mat('#e9e6dc', { roughness: 0.5 }));
+  battery.position.set(0, -0.012, -RZ - 0.5);
+  head.add(battery);
+  const button = mesh(new THREE.BoxGeometry(0.045, 0.03, 0.06), mat('#d62a1e'), { cast: false });
+  button.position.set(0, 0.045, -RZ - 0.24);
+  head.add(button);
+  const led = mesh(new THREE.BoxGeometry(0.025, 0.02, 0.025), mat('#ff3b30', { emissive: '#ff2a1a', emissiveIntensity: 1.2 }), { cast: false });
+  led.position.set(0, 0.045, -RZ - 0.13);
+  head.add(led);
+
+  const merged = bakeStatic(head);
+  merged.position.z = grip;
+  pivot.add(merged);
+
+  g.userData.pivot = pivot;
+  g.userData.grid = gridMat;
   return g;
 }
 

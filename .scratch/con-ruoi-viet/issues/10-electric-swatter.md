@@ -6,6 +6,6 @@
 
 **Status:** ready-for-agent
 
-- [ ] Swatter model, wind-up pose and strike
-- [ ] Spark effect on impact and "tạch" sound
-- [ ] Identical warning zone and hit rules
+- [x] Swatter model, wind-up pose and strike
+- [x] Spark effect on impact and "tạch" sound
+- [x] Identical warning zone and hit rules

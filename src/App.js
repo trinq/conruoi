@@ -50,7 +50,7 @@ export class App {
     const level = LEVELS[levelIndex];
     this.round = new Round(this.stage.scene, level, levelIndex, { lives });
     this.stage.setTimeOfDay(level.timeOfDay);
-    this.env.setRegion(level.region, level.timeOfDay);
+    this.env.setRegion(level.region);
   }
 
   // M key and the menu's sound item share this.
@@ -97,8 +97,9 @@ export class App {
       .on('swing', (weapon) => this.gameAudio.swing(weapon))
       .on('slap', (x, z, weapon) => {
         this.gameAudio.slap(weapon);
-        // A fan lands lighter than a palm.
+        // A fan lands lighter than a palm; a swatter is light but snappy.
         if (weapon === 'fan') this.stage.shake(110, 0.07);
+        else if (weapon === 'swatter') this.stage.shake(90, 0.08);
         else this.stage.shake(140, 0.12);
       })
       .on('hit', () => {

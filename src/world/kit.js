@@ -743,3 +743,486 @@ export function bougainvillea(rand, { width = 2, drop = 1.8 } = {}) {
   g.add(stem);
   return g;
 }
+
+// ----- Sài Gòn -----
+
+// Corrugated metal sheet (tôn) lying flat, `width` along x and `len` along
+// z, ridges running along z. Flat shading turns the zigzag into ribs.
+export function corrugated(width, len, colour) {
+  const ribs = Math.max(2, Math.round(width / 0.09));
+  const geo = new THREE.PlaneGeometry(width, len, ribs, 1);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const col = Math.round(((pos.getX(i) + width / 2) / width) * ribs);
+    pos.setY(i, (col % 2) * 0.035);
+  }
+  geo.computeVertexNormals();
+  return mesh(geo, mat(colour, { roughness: 0.55, side: THREE.DoubleSide }));
+}
+
+// Many signs drawn into one canvas, so every sign in a street shares one
+// material and bakes into a single draw call. `glow` lights the signs from
+// inside (plastic light boxes at night).
+export class SignAtlas {
+  constructor({ glow = false, size = 2048 } = {}) {
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = this.canvas.height = size;
+    this.ctx = this.canvas.getContext('2d');
+    this.size = size;
+    this.x = 0;
+    this.y = 0;
+    this.row = 0;
+    this.texture = new THREE.CanvasTexture(this.canvas);
+    this.texture.colorSpace = THREE.SRGBColorSpace;
+    this.texture.anisotropy = 4;
+    this.material = new THREE.MeshStandardMaterial({
+      map: this.texture,
+      roughness: 0.6,
+      ...(glow ? { emissive: '#ffffff', emissiveMap: this.texture, emissiveIntensity: 0.85 } : {}),
+    });
+  }
+
+  // Reserves a pw × ph pixel slot (shelf packing) and returns its rectangle.
+  slot(pw, ph) {
+    if (this.x + pw > this.size) {
+      this.x = 0;
+      this.y += this.row;
+      this.row = 0;
+    }
+    if (this.y + ph > this.size) throw new Error('sign atlas is full');
+    const r = { x: this.x, y: this.y, w: pw, h: ph };
+    this.x += pw;
+    this.row = Math.max(this.row, ph);
+    return r;
+  }
+
+  // A w × h plane showing what `draw(ctx, pw, ph)` paints in its slot.
+  plane(w, h, draw, { px = 160 } = {}) {
+    const pw = Math.min(this.size, Math.round(w * px));
+    const ph = Math.round(h * px);
+    const r = this.slot(pw, ph);
+    const { ctx } = this;
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.beginPath();
+    ctx.rect(0, 0, pw, ph);
+    ctx.clip();
+    draw(ctx, pw, ph);
+    ctx.restore();
+    this.texture.needsUpdate = true;
+    const geo = new THREE.PlaneGeometry(w, h);
+    const uv = geo.attributes.uv;
+    for (let i = 0; i < uv.count; i++) {
+      uv.setXY(i, (r.x + uv.getX(i) * pw) / this.size, 1 - (r.y + (1 - uv.getY(i)) * ph) / this.size);
+    }
+    return mesh(geo, this.material, { cast: false });
+  }
+
+  // Bảng hiệu nhựa: a plastic shop sign with a coloured band, the name in
+  // big letters and a smaller line (what they sell, a phone number).
+  sign(text, w, h, { bg = '#ffffff', fg = '#1f4e9c', band = '#d62a1e', sub = null } = {}) {
+    const g = new THREE.Group();
+    const frame = mesh(new THREE.BoxGeometry(w + 0.08, h + 0.08, 0.1), mat('#d9dde0', { roughness: 0.4 }));
+    g.add(frame);
+    const face = this.plane(w, h, (ctx, pw, ph) => {
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, pw, ph);
+      ctx.fillStyle = band;
+      ctx.fillRect(0, 0, pw, ph * 0.12);
+      ctx.fillRect(0, ph * 0.88, pw, ph * 0.12);
+      ctx.fillStyle = fg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Leave room above capitals for stacked Vietnamese accents (Ố, Ấ).
+      fitText(ctx, text, pw * 0.92, sub ? ph * 0.36 : ph * 0.48, '"Paytone One", sans-serif');
+      ctx.fillText(text, pw / 2, sub ? ph * 0.45 : ph * 0.55);
+      if (sub) {
+        ctx.fillStyle = band;
+        fitText(ctx, sub, pw * 0.86, ph * 0.2, '"Paytone One", sans-serif');
+        ctx.fillText(sub, pw / 2, ph * 0.72);
+      }
+    });
+    face.position.z = 0.055;
+    g.add(face);
+    return g;
+  }
+}
+
+function fitText(ctx, text, maxW, maxH, family) {
+  let size = Math.floor(maxH);
+  do {
+    ctx.font = `${size}px ${family}`;
+    size -= 2;
+  } while (ctx.measureText(text).width > maxW && size > 8);
+}
+
+const LIT_WINDOW = mat('#ffd98a', { emissive: '#ffc35a', emissiveIntensity: 0.9 });
+const ALLEY_WALLS = ['#bfe3d6', '#f4c7c3', '#f6e3a1', '#cfe0f2', '#f2f0e8', '#e8d4f0', '#f7d7a8', '#c9e8b8'];
+const GRILLES = ['#2f6f8f', '#3f7d5a', '#7a2f2f', '#2b2b30', '#c9cdd1'];
+const TIN = ['#3f6fae', '#9a5a3a', '#a7b0b5', '#b8432f', '#5d8a9e'];
+
+// Song sắt: a panel of vertical iron bars with rails top and bottom.
+function grille(w, h, colour) {
+  const g = new THREE.Group();
+  const iron = mat(colour, { roughness: 0.5 });
+  for (const y of [-h / 2, h / 2]) {
+    const rail = mesh(new THREE.BoxGeometry(w, 0.05, 0.05), iron);
+    rail.position.y = y;
+    g.add(rail);
+  }
+  for (let x = -w / 2 + 0.06; x <= w / 2 - 0.05; x += 0.13) {
+    const bar = mesh(new THREE.BoxGeometry(0.03, h, 0.03), iron, { cast: false });
+    bar.position.x = x;
+    g.add(bar);
+  }
+  return g;
+}
+
+// A clothes line of drying laundry.
+function laundry(rand, w) {
+  const g = new THREE.Group();
+  const line = mesh(new THREE.BoxGeometry(w, 0.015, 0.015), mat('#2b2b30'), { cast: false });
+  g.add(line);
+  for (let x = -w / 2 + 0.25; x < w / 2 - 0.2; x += range(rand, 0.35, 0.6)) {
+    const cw = range(rand, 0.22, 0.42);
+    const ch = range(rand, 0.3, 0.6);
+    const cloth = mesh(new THREE.BoxGeometry(cw, ch, 0.02), mat(pick(rand, ['#e2483d', '#2f6fdf', '#f2f2ec', '#f2c94c', '#5aa65a', '#f08ac0', '#6b4fa0'])), {
+      cast: false,
+    });
+    cloth.position.set(x, -ch / 2, 0);
+    g.add(cloth);
+  }
+  return g;
+}
+
+// Bồn nước inox: the upright stainless water tank on every Sài Gòn roof.
+function inoxTank() {
+  const g = new THREE.Group();
+  const steel = mat('#d7dde2', { roughness: 0.25, metalness: 0.6 });
+  const tank = mesh(new THREE.CylinderGeometry(0.42, 0.42, 1.3, 12), steel);
+  tank.position.y = 0.95;
+  g.add(tank);
+  const lid = mesh(new THREE.SphereGeometry(0.42, 12, 4, 0, Math.PI * 2, 0, Math.PI / 2), steel);
+  lid.scale.y = 0.35;
+  lid.position.y = 1.6;
+  g.add(lid);
+  const stand = mesh(new THREE.BoxGeometry(0.9, 0.3, 0.9), mat('#6b6f73'));
+  stand.position.y = 0.15;
+  g.add(stand);
+  return g;
+}
+
+// Nhà phố trong hẻm: a narrow Sài Gòn house painted a bright pastel, with
+// a corrugated tin awning over a rolling-shutter shopfront, iron grilles on
+// the windows and balconies, and a tin roof or a flat roof with an inox
+// water tank. `sign` hangs a plastic sign (from `atlas`) above the awning.
+// `lit` is the share of windows with the lights on inside (at night).
+export function alleyHouse(
+  rand,
+  { width = 4, floors = 3, depth = 7, roof = rand() < 0.5 ? 'tin' : 'flat', sign = null, signColours, atlas, shutterDown = null, lit = 0 } = {},
+) {
+  const g = new THREE.Group();
+  const groundH = 3.1;
+  const floorH = 2.7;
+  const height = groundH + floorH * (floors - 1);
+  const wall = mat(pick(rand, ALLEY_WALLS));
+  const iron = pick(rand, GRILLES);
+
+  const body = mesh(new THREE.BoxGeometry(width, height, depth), wall);
+  body.position.set(0, height / 2, -depth / 2);
+  g.add(body);
+  // Tiled skirting along the bottom of the wall.
+  const skirting = mesh(new THREE.BoxGeometry(width + 0.02, 0.5, 0.04), mat('#8a7f76'), { cast: false });
+  skirting.position.set(0, 0.25, 0.01);
+  g.add(skirting);
+
+  // Shopfront: the inside lit by a fluorescent tube, behind a rolling
+  // shutter that is up during the day.
+  const inside = mesh(new THREE.BoxGeometry(width - 0.5, groundH - 0.5, 0.1), mat('#4a3f38'), { cast: false });
+  inside.position.set(0, (groundH - 0.5) / 2 + 0.12, 0.02);
+  g.add(inside);
+  const tube = mesh(new THREE.BoxGeometry(Math.min(1.2, width * 0.4), 0.05, 0.05), mat('#f4fbff', { emissive: '#e8f6ff', emissiveIntensity: 0.9 }), {
+    cast: false,
+  });
+  tube.position.set(0, groundH - 0.55, 0.1);
+  g.add(tube);
+  const drop = shutterDown ?? range(rand, 0.3, 0.8);
+  const shutter = mesh(new THREE.BoxGeometry(width - 0.5, drop, 0.08), mat('#a9b0b5', { roughness: 0.5 }));
+  shutter.position.set(0, groundH - 0.38 - drop / 2, 0.07);
+  g.add(shutter);
+  for (let y = groundH - 0.45; y > groundH - 0.38 - drop; y -= 0.11) {
+    const groove = mesh(new THREE.BoxGeometry(width - 0.5, 0.02, 0.02), mat('#80878c'), { cast: false });
+    groove.position.set(0, y, 0.12);
+    g.add(groove);
+  }
+  const step = mesh(new THREE.BoxGeometry(width, 0.16, 0.5), mat('#b4aca2'));
+  step.position.set(0, 0.08, 0.25);
+  g.add(step);
+
+  // Mái hiên tôn: a tin awning on thin steel brackets, sloping toward the
+  // street.
+  const awningLen = range(rand, 1.4, 2.0);
+  const awning = corrugated(width + 0.1, awningLen, pick(rand, TIN));
+  awning.position.set(0, groundH + 0.25, awningLen / 2 - 0.05);
+  awning.rotation.x = 0.22;
+  g.add(awning);
+  for (const x of [-width / 2 + 0.2, width / 2 - 0.2]) {
+    const bracket = mesh(new THREE.BoxGeometry(0.04, 0.04, awningLen), mat('#5b6066'), { cast: false });
+    bracket.position.set(x, groundH + 0.15, awningLen / 2 - 0.05);
+    bracket.rotation.x = 0.22;
+    g.add(bracket);
+  }
+
+  if (sign && atlas) {
+    const s = atlas.sign(sign, Math.min(width - 0.4, 3.8), 0.75, signColours);
+    // Proud of the wall, in front of the first-floor window grille.
+    s.position.set(0, groundH + 0.85, 0.22);
+    g.add(s);
+  }
+
+  for (let f = 1; f < floors; f++) {
+    const y = groundH + floorH * (f - 1);
+    const winW = Math.min(1.5, width * 0.38);
+    const glass = mesh(new THREE.BoxGeometry(winW, 1.3, 0.05), lit && rand() < lit ? LIT_WINDOW : mat('#4a5a66', { roughness: 0.3 }), { cast: false });
+    glass.position.set(0, y + 1.35, 0.03);
+    g.add(glass);
+    const bars = grille(winW + 0.1, 1.35, iron);
+    bars.position.set(0, y + 1.35, 0.12);
+    g.add(bars);
+    // No balcony right above a sign, so the sign stays readable.
+    if (!(sign && f === 1) && rand() < 0.65) {
+      // Balcony slab with a grille front, plants and sometimes laundry.
+      const slab = mesh(new THREE.BoxGeometry(width - 0.2, 0.12, 0.75), mat('#d9d4ca'));
+      slab.position.set(0, y + 0.05, 0.37);
+      g.add(slab);
+      const front = grille(width - 0.2, 0.9, iron);
+      front.position.set(0, y + 0.55, 0.74);
+      g.add(front);
+      for (let i = 0; i < 1 + Math.floor(rand() * 3); i++) {
+        const x = range(rand, -width / 2 + 0.35, width / 2 - 0.35);
+        const pot = mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.22, 7), mat(pick(rand, ['#b5562e', '#f2f2ec', '#2f6fdf'])));
+        pot.position.set(x, y + 0.22, 0.5);
+        g.add(pot);
+        const leaves = mesh(jitter(new THREE.IcosahedronGeometry(0.22, 0), 0.05, rand), mat(pick(rand, ['#4f9e34', '#5fb83b', '#3f8f2c'])));
+        leaves.position.set(x, y + 0.45, 0.5);
+        g.add(leaves);
+      }
+      if (rand() < 0.45) {
+        const l = laundry(rand, width - 0.5);
+        l.position.set(0, y + 1.9, 0.6);
+        g.add(l);
+      }
+    }
+    if (rand() < 0.55) {
+      const ac = AC();
+      ac.position.set((rand() < 0.5 ? -1 : 1) * (width / 2 - 0.45), y + 2.2, 0.2);
+      g.add(ac);
+    }
+  }
+
+  // Parapet, then a tin roof sloping back or a flat roof with a tank.
+  const parapet = mesh(new THREE.BoxGeometry(width, 0.6, 0.15), wall);
+  parapet.position.set(0, height + 0.3, -0.07);
+  g.add(parapet);
+  if (roof === 'tin') {
+    const len = 3.4;
+    const tin = corrugated(width - 0.1, len, pick(rand, TIN));
+    tin.position.set(0, height + 0.75, -len / 2 - 0.1);
+    tin.rotation.x = -0.18;
+    g.add(tin);
+  } else if (rand() < 0.8) {
+    const tank = inoxTank();
+    tank.position.set(range(rand, -width / 4, width / 4), height, -1.2);
+    g.add(tank);
+  }
+  return g;
+}
+
+// Xe đẩy: a street-food cart on two bicycle wheels with a glass case on
+// top, a pot of broth and the dish's name painted on the side (`label`,
+// drawn in `atlas`). Faces +z. userData.steam holds the steam puffs.
+export function foodCart(rand, { label = 'HỦ TIẾU', atlas, colours, pot = true } = {}) {
+  const g = new THREE.Group();
+  const w = 1.7;
+  const d = 0.75;
+  const body = mat(pick(rand, ['#2f6fb5', '#d6452e', '#2e8b57', '#e2a12a']), { roughness: 0.5 });
+  const steel = mat('#cfd5da', { roughness: 0.3, metalness: 0.5 });
+  const cabinet = mesh(new THREE.BoxGeometry(w, 0.75, d), body);
+  cabinet.position.y = 0.55;
+  g.add(cabinet);
+  const top = mesh(new THREE.BoxGeometry(w + 0.1, 0.05, d + 0.1), steel);
+  top.position.y = 0.95;
+  g.add(top);
+  for (const x of [-w / 2 + 0.35, w / 2 - 0.35]) {
+    const wheel = mesh(new THREE.TorusGeometry(0.3, 0.035, 5, 14), mat('#1d1d20'));
+    wheel.position.set(x, 0.3, d / 2 + 0.06);
+    g.add(wheel);
+    const spoke = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 6), steel);
+    spoke.rotation.x = Math.PI / 2;
+    spoke.position.set(x, 0.3, d / 2 + 0.02);
+    g.add(spoke);
+  }
+  const handle = mesh(new THREE.CylinderGeometry(0.025, 0.025, d + 0.3, 6), steel);
+  handle.rotation.x = Math.PI / 2;
+  handle.position.set(-w / 2 - 0.2, 0.95, 0);
+  g.add(handle);
+
+  // Glass case: steel frame, pale panes and a roof sheet.
+  const caseH = 0.65;
+  for (const x of [-w / 2 + 0.03, w / 2 - 0.03]) {
+    for (const z of [-d / 2 + 0.03, d / 2 - 0.03]) {
+      const post = mesh(new THREE.BoxGeometry(0.03, caseH, 0.03), steel);
+      post.position.set(x, 0.98 + caseH / 2, z);
+      g.add(post);
+    }
+  }
+  const roof = mesh(new THREE.BoxGeometry(w + 0.06, 0.04, d + 0.06), steel);
+  roof.position.y = 0.98 + caseH;
+  g.add(roof);
+  const pane = new THREE.MeshStandardMaterial({ color: '#d8f0ff', transparent: true, opacity: 0.25, roughness: 0.1, depthWrite: false });
+  const glass = new THREE.Mesh(new THREE.BoxGeometry(w - 0.04, caseH - 0.04, d - 0.04), pane);
+  glass.position.y = 0.98 + caseH / 2;
+  g.add(glass);
+  // What is on show in the case: noodles, herbs, a tray of meat.
+  for (const [x, c] of [
+    [-0.45, '#f4efe0'],
+    [0.0, '#5fb83b'],
+    [0.42, '#c97b5a'],
+  ]) {
+    const heap = mesh(jitter(new THREE.IcosahedronGeometry(0.16, 0), 0.03, rand), mat(c), { cast: false });
+    heap.scale.y = 0.5;
+    heap.position.set(x, 1.05, -0.08);
+    g.add(heap);
+  }
+
+  if (label && atlas) {
+    const s = atlas.plane(w - 0.1, 0.42, (ctx, pw, ph) => {
+      const { bg = '#fff6d8', fg = '#c8102e' } = colours ?? {};
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, pw, ph);
+      ctx.fillStyle = fg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      fitText(ctx, label, pw * 0.9, ph * 0.55, '"Paytone One", sans-serif');
+      ctx.fillText(label, pw / 2, ph * 0.56);
+    });
+    s.position.set(0, 0.6, d / 2 + 0.01);
+    g.add(s);
+  }
+
+  g.userData.steam = [];
+  if (pot) {
+    const p = mesh(new THREE.CylinderGeometry(0.28, 0.26, 0.42, 12), steel);
+    p.position.set(w / 2 + 0.35, 0.78, 0);
+    g.add(p);
+    const stand = mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.6, 8), mat('#6b6f73'));
+    stand.position.set(w / 2 + 0.35, 0.3, 0);
+    g.add(stand);
+    const broth = mesh(new THREE.CircleGeometry(0.26, 12), mat('#d8b46a'), { cast: false });
+    broth.rotation.x = -Math.PI / 2;
+    broth.position.set(w / 2 + 0.35, 0.995, 0);
+    g.add(broth);
+    for (let i = 0; i < 5; i++) {
+      const puff = mesh(new THREE.IcosahedronGeometry(0.1, 0), new THREE.MeshStandardMaterial({ color: '#ffffff', transparent: true, opacity: 0.5, flatShading: true }), {
+        cast: false,
+      });
+      puff.userData.phase = i / 5;
+      g.userData.steam.push(puff);
+    }
+    g.userData.potAt = new THREE.Vector3(w / 2 + 0.35, -0.15, 0);
+  }
+  return g;
+}
+
+// ----- chợ đêm -----
+
+// Shared glowing materials for the night market, so every bulb of one
+// colour and every fluorescent tube bakes into one draw call each.
+export function nightGlow() {
+  const glow = (colour, intensity) =>
+    new THREE.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: intensity, flatShading: true, roughness: 0.6 });
+  return {
+    bulbs: ['#ffd27a', '#ff6b5a', '#7ad8ff', '#9cff8a', '#ffd27a'].map((c) => glow(c, 2.2)),
+    tube: glow('#eaf8ff', 1.6),
+  };
+}
+
+// Dây đèn: a cord sagging between two points with round bulbs along it,
+// cycling through `glow.bulbs`.
+export function stringLights(from, to, glow, { spacing = 0.45, sag = 0.6, offset = 0 } = {}) {
+  const g = new THREE.Group();
+  const cord = mat('#1d1d20');
+  const len = from.distanceTo(to);
+  const n = Math.max(2, Math.round(len / spacing));
+  const at = (t) => from.clone().lerp(to, t).setY(THREE.MathUtils.lerp(from.y, to.y, t) - Math.sin(t * Math.PI) * sag);
+  const bulb = new THREE.IcosahedronGeometry(0.065, 0);
+  for (let i = 0; i < n; i++) {
+    const a = at(i / n);
+    const b = at((i + 1) / n);
+    const seg = mesh(new THREE.BoxGeometry(0.012, 0.012, a.distanceTo(b)), cord, { cast: false });
+    seg.position.copy(a).lerp(b, 0.5);
+    seg.lookAt(b);
+    g.add(seg);
+    if (i > 0) {
+      const m = mesh(bulb, glow.bulbs[(i + offset) % glow.bulbs.length], { cast: false });
+      m.position.copy(a).add(new THREE.Vector3(0, -0.08, 0));
+      g.add(m);
+    }
+  }
+  return g;
+}
+
+const TARPS = ['#c8302a', '#2f5fae', '#2e8b57', '#e08a1e', '#7a3fa0'];
+const GOODS = ['#e2483d', '#f2c94c', '#2f6fdf', '#f08ac0', '#5aa65a', '#ffffff', '#1d1d20', '#f08a24'];
+
+// Sạp chợ đêm: a stall under a canvas tarp on thin poles, a fluorescent
+// tube under it, a table piled with goods (clothes, fruit, toys) and a lit
+// sign hung from the tarp's front edge.
+export function marketStall(rand, { width = 2.6, depth = 1.8, sign = null, signColours, atlas, glow }) {
+  const g = new THREE.Group();
+  const pole = mat('#8c8f93', { roughness: 0.4 });
+  const h = 2.5;
+  for (const x of [-width / 2, width / 2]) {
+    for (const z of [-depth / 2, depth / 2]) {
+      const p = mesh(new THREE.CylinderGeometry(0.03, 0.03, z > 0 ? h : h + 0.3, 5), pole);
+      p.position.set(x, (z > 0 ? h : h + 0.3) / 2, z);
+      g.add(p);
+    }
+  }
+  const tarp = mesh(new THREE.BoxGeometry(width + 0.3, 0.04, depth + 0.4), mat(pick(rand, TARPS), { roughness: 0.9 }));
+  tarp.position.set(0, h + 0.17, 0);
+  tarp.rotation.x = 0.17;
+  g.add(tarp);
+  const valance = mesh(new THREE.BoxGeometry(width + 0.3, 0.25, 0.03), tarp.material, { cast: false });
+  valance.position.set(0, h - 0.05, depth / 2 + 0.2);
+  g.add(valance);
+  if (glow) {
+    const tube = mesh(new THREE.BoxGeometry(width * 0.6, 0.05, 0.05), glow.tube, { cast: false });
+    tube.position.set(0, h - 0.05, 0);
+    g.add(tube);
+  }
+  const table = mesh(new THREE.BoxGeometry(width - 0.2, 0.08, depth - 0.5), mat('#a9b0b5', { roughness: 0.4 }));
+  table.position.set(0, 0.8, 0);
+  g.add(table);
+  const cloth = mesh(new THREE.BoxGeometry(width - 0.2, 0.75, 0.03), mat(pick(rand, ['#f2f2ec', '#c8302a', '#2f5fae'])), { cast: false });
+  cloth.position.set(0, 0.42, (depth - 0.5) / 2);
+  g.add(cloth);
+  const kind = rand();
+  for (let i = 0; i < Math.round(width * 4); i++) {
+    const x = range(rand, -width / 2 + 0.25, width / 2 - 0.25);
+    const z = range(rand, -depth / 2 + 0.4, depth / 2 - 0.4);
+    const geo =
+      kind < 0.4 ? new THREE.BoxGeometry(0.3, range(rand, 0.06, 0.2), 0.24) : kind < 0.7 ? new THREE.IcosahedronGeometry(0.1, 0) : new THREE.BoxGeometry(0.14, 0.18, 0.14);
+    const item = mesh(geo, mat(pick(rand, GOODS)));
+    item.position.set(x, 0.92, z);
+    item.rotation.y = rand() * 3;
+    g.add(item);
+  }
+  if (sign && atlas) {
+    const s = atlas.sign(sign, Math.min(width, 2.6), 0.5, signColours);
+    s.position.set(0, h + 0.55, depth / 2 + 0.25);
+    g.add(s);
+  }
+  return g;
+}

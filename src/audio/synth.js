@@ -122,6 +122,47 @@ export function fan(sr) {
   );
 }
 
+// Electric swatter: the sharp "tạch" of a fly-sized spark jumping the
+// grid, a short crackle of smaller arcs after it, and the high whine of the
+// charged grid dying away. Bright and dry, with no thump.
+export function swatter(sr) {
+  const rand = mulberry32(23);
+  // Pops in the crackle: [time s, loudness].
+  const pops = [
+    [0.018, 0.7],
+    [0.031, 0.45],
+    [0.047, 0.8],
+    [0.062, 0.35],
+    [0.081, 0.55],
+    [0.104, 0.3],
+    [0.13, 0.4],
+    [0.162, 0.2],
+  ];
+  let hp = 0;
+  let prev = 0;
+  return declick(
+    render(0.32, sr, (t) => {
+      const noise = rand() * 2 - 1;
+      // First difference of noise: hiss with the low end cut.
+      const hiss = noise - prev;
+      prev = noise;
+      hp += 0.6 * (hiss - hp);
+      // The main snap: a near-instant click with a bright ringing tail.
+      const snap = hiss * Math.exp(-t * 160) * 1.3 + Math.sin(TAU * 3100 * t) * Math.exp(-t * 90) * 0.35;
+      let crackle = 0;
+      for (const [at, gain] of pops) {
+        const local = t - at;
+        if (local >= 0 && local < 0.012) crackle += hp * gain * Math.exp(-local * 420);
+      }
+      // A mains-like buzz under the arcs: 100 Hz square with odd harmonics.
+      const hum = (Math.sign(Math.sin(TAU * 100 * t)) * 0.12 + Math.sin(TAU * 2400 * t) * 0.08) * Math.exp(-t * 14);
+      return Math.tanh(2.2 * (snap + crackle + hum)) * 0.6;
+    }),
+    sr,
+    1,
+  );
+}
+
 function square(phase) {
   return phase % 1 < 0.5 ? 1 : -1;
 }
@@ -183,4 +224,4 @@ export function jingle(sr) {
   );
 }
 
-export const SOUNDS = { buzz, munch, slap, fan, hurt, jingle };
+export const SOUNDS = { buzz, munch, slap, fan, swatter, hurt, jingle };
