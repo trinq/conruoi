@@ -1,3 +1,5 @@
+> **Lưu ý:** phần hình ảnh và giao diện của spec này đã được thay bằng [`.scratch/con-ruoi-viet/SPEC.md`](.scratch/con-ruoi-viet/SPEC.md) (bản 3D low-poly "Hành trình xuyên Việt"). Luật chơi bên dưới vẫn giữ nguyên.
+
 # 🪰 Game "Con Ruồi" - Spec
 
 ## Problem Statement
