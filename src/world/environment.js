@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { rng, range, mat, mesh } from './lowpoly.js';
 import { tree, pine, bush, rock, crate, barrel, stall, pond, lantern } from './models.js';
+import { buildHanoi } from './scenes/hanoi.js';
 
 import { PAVING } from './area.js';
 
@@ -183,12 +184,11 @@ function lanterns() {
   return g;
 }
 
-// Builds the static scenery around the play area. Returns hooks for
-// animating it and switching between day and night.
-export function buildEnvironment(scene) {
+// The original meadow scene, kept as a placeholder for regions whose own
+// street scene has not been built yet.
+function buildMeadow() {
   const rand = rng(2024);
   const root = new THREE.Group();
-  scene.add(root);
 
   root.add(ground(rand));
   root.add(clearing(rand));
@@ -256,14 +256,40 @@ export function buildEnvironment(scene) {
   root.add(night);
 
   return {
-    setTheme(name) {
-      night.visible = name === 'night';
+    root,
+    setNight(on) {
+      night.visible = on;
     },
     update(timeMs) {
       for (const pad of water.userData.pads) {
         pad.position.y = 0.05 + Math.sin(timeMs * 0.0015 + pad.userData.phase) * 0.012;
         pad.rotation.y += 0.0004;
       }
+    },
+  };
+}
+
+const SCENES = { hanoi: buildHanoi };
+
+// Owns the scenery for every region. Each region's scene is built the first
+// time it is needed and kept, so switching levels back and forth is cheap.
+export function buildEnvironment(scene) {
+  const built = new Map();
+  let active = null;
+  return {
+    setRegion(region, timeOfDay) {
+      const key = SCENES[region] ? region : 'meadow';
+      if (!built.has(key)) {
+        const s = key === 'meadow' ? buildMeadow() : SCENES[key]();
+        built.set(key, s);
+        scene.add(s.root);
+      }
+      for (const [k, s] of built) s.root.visible = k === key;
+      active = built.get(key);
+      active.setNight?.(timeOfDay === 'night');
+    },
+    update(timeMs, dt) {
+      active?.update(timeMs, dt);
     },
   };
 }

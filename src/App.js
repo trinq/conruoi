@@ -9,6 +9,7 @@ import { GameAudio } from './audio/GameAudio.js';
 import { UI } from './ui/ui.js';
 import { LEVELS } from './levels.js';
 import { MAX_LIVES, newGame } from './gameState.js';
+import { COPY } from './copy.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
@@ -35,10 +36,7 @@ export class App {
       canvas.style.cursor = over ? 'pointer' : '';
     });
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyM' && !e.repeat) {
-        this.audio.muted = !this.audio.muted;
-        this.ui.setMuted(this.audio.muted);
-      }
+      if (e.code === 'KeyM' && !e.repeat) this.toggleSound();
     });
     this.audio.onUnlock(() => this.ui.hideAudioHint());
 
@@ -51,8 +49,14 @@ export class App {
     this.round?.dispose();
     const level = LEVELS[levelIndex];
     this.round = new Round(this.stage.scene, level, levelIndex, { lives });
-    this.stage.setTheme(level.theme);
-    this.env.setTheme(level.theme);
+    this.stage.setTimeOfDay(level.timeOfDay);
+    this.env.setRegion(level.region, level.timeOfDay);
+  }
+
+  // M key and the menu's sound item share this.
+  toggleSound() {
+    this.audio.muted = !this.audio.muted;
+    this.ui.setMuted(this.audio.muted);
   }
 
   showMenu() {
@@ -60,7 +64,12 @@ export class App {
     this.gameAudio.stop();
     this.loadLevel(0, MAX_LIVES);
     this.ui.hideHud();
-    this.ui.showMenu({ onPlay: () => this.go(newGame()), audioLocked: this.audio.locked });
+    this.ui.showMenu({
+      onPlay: () => this.go(newGame()),
+      onToggleSound: () => this.toggleSound(),
+      onQuality: (level) => this.stage.setQuality(level),
+      audioLocked: () => this.audio.locked,
+    });
   }
 
   go(data) {
@@ -76,24 +85,29 @@ export class App {
     this.ui.showHud(levelIndex, this.round.level);
     this.ui.setScore(0);
     this.ui.setLives(lives);
+    this.ui.showIntro(levelIndex);
 
     const round = this.round;
     round.events
       .on('score', (score, food) => {
         this.totalScore += food.info.points;
         this.ui.setScore(score);
-        this.ui.popup(new THREE.Vector3(food.x, food.surfaceHeight + 0.9, food.z), `+${food.info.points} ${food.info.name}`);
+        this.ui.popup(new THREE.Vector3(food.x, food.surfaceHeight + 0.9, food.z), COPY.scorePopup(food.info));
       })
       .on('slap', () => {
         this.gameAudio.slap();
         this.stage.shake(140, 0.12);
       })
-      .on('hit', () => this.gameAudio.hurt())
+      .on('hit', () => {
+        this.gameAudio.hurt();
+        const fly = round.fly;
+        this.ui.hitReaction(new THREE.Vector3(fly.x, fly.altitude + 0.5, fly.z));
+      })
       .on('lives', (lives) => this.ui.setLives(lives, { lost: true }))
       .on('won', () =>
-        this.endRound('Đủ điểm!', () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),
+        this.endRound(COPY.targetReached, () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),
       )
-      .on('lost', () => this.endRound('Hết mạng!', () => this.showGameOver({ levelIndex, totalScore: this.totalScore })));
+      .on('lost', () => this.endRound(COPY.outOfLives, () => this.showGameOver({ levelIndex, totalScore: this.totalScore })));
   }
 
   endRound(message, next) {
@@ -128,16 +142,27 @@ export class App {
     });
   }
 
+  // On the home screen the fly loops lazily around the table.
+  menuFlightDir(now) {
+    const a = now * 0.0006;
+    const target = { x: Math.cos(a) * 3.2, z: 1.2 + Math.sin(a) * 2.2 };
+    const fly = this.round.fly;
+    const dx = target.x - fly.x;
+    const dz = target.z - fly.z;
+    const len = Math.hypot(dx, dz);
+    return len < 0.3 ? { x: 0, z: 0 } : { x: dx / len, z: dz / len };
+  }
+
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
-    this.env.update(now);
+    this.env.update(now, dt / 1000);
     if (this.mode === 'play') {
       this.round.update(dt, moveDirection(this.keys.state()));
       this.gameAudio.update(this.round.fly, dt / 1000);
       this.ui.updateBars(this.round.foods);
     } else {
-      this.round.preview(dt);
+      this.round.preview(dt, this.mode === 'menu' ? this.menuFlightDir(now) : undefined);
     }
     this.stage.render(dt);
     requestAnimationFrame((t) => this.frame(t));

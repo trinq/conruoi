@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { person, slapHand } from '../world/models.js';
+import { person, slapHand, pickArchetype } from '../world/models.js';
 import { textTexture } from '../world/lowpoly.js';
 import { Emitter } from './Emitter.js';
 import { SLAP_RADIUS } from './slapZone.js';
@@ -18,7 +18,9 @@ let alertTexture = null;
 //
 // States: idle -> windup -> slap -> idle. Emits 'slap' (x, z) on impact.
 export class Npc {
-  constructor({ x, z }, danger, { tables, rand, getFly, surfaceAt, canAttack }) {
+  // `weapon` is 'hand', 'fan' or 'swatter'.
+  constructor({ x, z }, danger, { weapon, south = false, tables, rand, getFly, surfaceAt, canAttack }) {
+    this.weapon = weapon;
     this.x = x;
     this.z = z;
     this.danger = danger;
@@ -32,7 +34,7 @@ export class Npc {
     this.phase = rand() * 10;
     this.events = new Emitter();
 
-    this.model = person(rand);
+    this.model = person(rand, pickArchetype(rand, { south }));
     this.model.position.set(x, 0, z);
     // Face the closest point of the nearest table.
     let best = null;
@@ -47,7 +49,7 @@ export class Npc {
     this.hand = slapHand(skin, shirt);
     this.hand.visible = false;
 
-    alertTexture ??= textTexture('!', { width: 128, height: 128, font: '800 110px "Baloo 2", sans-serif', color: '#ff3b30' });
+    alertTexture ??= textTexture('!', { width: 128, height: 128, font: '110px "Paytone One", sans-serif', color: '#ff3b30' });
     this.alert = new THREE.Sprite(new THREE.SpriteMaterial({ map: alertTexture, depthTest: false }));
     this.alert.scale.setScalar(0.7);
     this.alert.position.set(x, 2.15, z);

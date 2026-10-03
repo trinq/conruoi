@@ -1,23 +1,42 @@
 import * as THREE from 'three';
 
 const FOV = 30;
-const PITCH = THREE.MathUtils.degToRad(46); // camera looks down at this angle
-const TARGET = new THREE.Vector3(0, 0, -1.0);
+const PITCH = THREE.MathUtils.degToRad(40); // camera looks down at this angle
+const TARGET = new THREE.Vector3(0, 0, -1.6);
 // Half extents of the play area the camera must always keep in view.
 const HALF_WIDTH = 9.2;
-const HALF_HEIGHT = 6.3;
+const HALF_HEIGHT = 6.8;
 
-const THEMES = {
-  day: {
+// Lighting per time of day. `sun` is [colour, intensity, position].
+const LIGHTING = {
+  morning: {
+    background: '#dcecf7',
+    hemi: ['#e6f2ff', '#8fae78', 0.95],
+    sun: ['#ffe4bf', 2.6, [10, 12, 9]],
+    exposure: 1.0,
+  },
+  noon: {
     background: '#bfe6ff',
-    hemi: ['#cfe9ff', '#6aa84a', 0.9],
-    sun: ['#fff0d0', 3.2],
+    hemi: ['#d6efff', '#7fb86a', 0.9],
+    sun: ['#fffaf0', 3.3, [-3, 18, -2]],
+    exposure: 1.0,
+  },
+  sunset: {
+    background: '#f3b98c',
+    hemi: ['#ffd7b0', '#7a6a4a', 0.75],
+    sun: ['#ff9a5a', 2.6, [-12, 7, -6]],
+    exposure: 1.05,
+  },
+  afternoon: {
+    background: '#c9e4fb',
+    hemi: ['#d9ecff', '#7fae5e', 0.9],
+    sun: ['#fff0d0', 3.0, [-9, 14, -5]],
     exposure: 1.0,
   },
   night: {
     background: '#151b36',
     hemi: ['#3c4c80', '#1b2a1e', 0.55],
-    sun: ['#9fb4ff', 0.7],
+    sun: ['#9fb4ff', 0.7, [-9, 16, -5]],
     exposure: 1.1,
   },
 };
@@ -31,7 +50,7 @@ export class Stage {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     container.appendChild(this.renderer.domElement);
@@ -42,8 +61,6 @@ export class Stage {
     this.hemi = new THREE.HemisphereLight();
     this.scene.add(this.hemi);
     this.sun = new THREE.DirectionalLight();
-    // Low from the upper left, so shadows fall toward the lower right.
-    this.sun.position.set(-9, 16, -5);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     const s = this.sun.shadow.camera;
@@ -62,13 +79,13 @@ export class Stage {
     this.shakeAmount = 0;
     this.basePosition = new THREE.Vector3();
 
-    this.setTheme('day');
+    this.setTimeOfDay('noon');
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
-  setTheme(name) {
-    const t = THEMES[name];
+  setTimeOfDay(name) {
+    const t = LIGHTING[name];
     this.scene.background = new THREE.Color(t.background);
     this.scene.fog = new THREE.Fog(t.background);
     this.updateFog();
@@ -77,6 +94,7 @@ export class Stage {
     this.hemi.intensity = t.hemi[2];
     this.sun.color.set(t.sun[0]);
     this.sun.intensity = t.sun[1];
+    this.sun.position.set(...t.sun[2]);
     this.renderer.toneMappingExposure = t.exposure;
   }
 
@@ -101,6 +119,20 @@ export class Stage {
     if (!this.scene.fog || !this.distance) return;
     this.scene.fog.near = this.distance + 16;
     this.scene.fog.far = this.distance + 52;
+  }
+
+  // 'high' draws shadows at full resolution; 'low' turns shadows off and
+  // renders at one pixel per CSS pixel, for weaker laptops.
+  setQuality(level) {
+    const high = level === 'high';
+    this.renderer.setPixelRatio(high ? Math.min(window.devicePixelRatio, 2) : 1);
+    this.renderer.shadowMap.enabled = high;
+    this.sun.castShadow = high;
+    // Materials compile shadow support in, so they must be rebuilt.
+    this.scene.traverse((o) => {
+      if (o.material) for (const m of [o.material].flat()) m.needsUpdate = true;
+    });
+    this.resize();
   }
 
   shake(ms, amount = 0.08) {

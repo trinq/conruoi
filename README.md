@@ -20,7 +20,10 @@ npm install
 npm run dev           # dev server
 npm run build         # static build in dist/
 npm run check:levels  # validate src/levels.js
+npm run test:e2e      # play the game in Chromium (Playwright)
 ```
+
+On a machine that already has Chromium, point the tests at it with `CHROMIUM_PATH=/path/to/chromium npm run test:e2e`; otherwise run `npx playwright install chromium` once. Every pull request runs the level check, the build and the browser tests in GitHub Actions (`.github/workflows/ci.yml`).
 
 Code layout:
 
@@ -28,6 +31,9 @@ Code layout:
 - `src/game/`: gameplay (`Round.js` runs one level; `Fly.js`, `Npc.js`, `Food.js`, `Table.js`)
 - `src/ui/`: HTML HUD, menus and result boards over the canvas
 - `src/audio/`: synthesized sound effects and the Web Audio player
+- `src/regions.js`: the five stops of the trip and the dishes each one serves
+- `src/game/dishes.js`: dish catalogue and score tiers
+- `src/copy.js`: every string the player reads
 - `src/levels.js`: level layouts and difficulty
 
 Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`). The spec is in `SPEC.md`, tickets are in `.scratch/con-ruoi-game/issues/`.

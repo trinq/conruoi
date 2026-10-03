@@ -7,6 +7,7 @@ import { Food } from './Food.js';
 import { Fly } from './Fly.js';
 import { Npc } from './Npc.js';
 import { inSlapZone } from './slapZone.js';
+import { dishFor, REGIONS } from '../regions.js';
 
 const GROUND = { height: 0.04 }; // top of the packed-earth clearing
 const BOUNDS_INSET = 0.4;
@@ -34,9 +35,9 @@ export class Round {
     for (const [i, t] of this.tables.entries()) {
       this.group.add(t.model);
       for (const f of level.tables[i].foods) {
-        const food = new Food(t, f, rand);
+        const food = new Food(t, dishFor(level.region, f), f, rand);
         this.foods.push(food);
-        this.group.add(food.model);
+        this.group.add(...food.objects);
       }
     }
 
@@ -52,8 +53,17 @@ export class Round {
     const { danger } = level;
     const surfaceAt = (x, z) => this.surfaceAt(x, z);
     const canAttack = () => this.npcs.filter((n) => n.isAttacking()).length < danger.maxSlaps;
-    this.npcs = level.npcs.map((spec) => {
-      const npc = new Npc(spec, danger, { tables: this.tables, rand, getFly: () => this.fly, surfaceAt, canAttack });
+    this.npcs = level.npcs.map((spec, i) => {
+      const weapon = level.weapons[i % level.weapons.length];
+      const npc = new Npc(spec, danger, {
+        weapon,
+        south: REGIONS[level.region].south,
+        tables: this.tables,
+        rand,
+        getFly: () => this.fly,
+        surfaceAt,
+        canAttack,
+      });
       npc.events.on('slap', (x, z) => this.onSlap(x, z));
       this.group.add(...npc.objects);
       return npc;
@@ -122,11 +132,11 @@ export class Round {
     for (const food of this.foods) food.update(this.time);
   }
 
-  // Keeps the scene alive behind menus and end banners: the fly hovers and
-  // the diners eat, but nobody attacks.
-  preview(dtMs) {
+  // Keeps the scene alive behind menus and end banners: the fly hovers (or
+  // follows `dir`) and the diners eat, but nobody attacks.
+  preview(dtMs, dir = { x: 0, z: 0 }) {
     this.time += dtMs;
-    this.fly.update(this.time, dtMs / 1000, { x: 0, z: 0 }, (x, z) => this.surfaceAt(x, z));
+    this.fly.update(this.time, dtMs / 1000, dir, (x, z) => this.surfaceAt(x, z));
     for (const npc of this.npcs) {
       if (npc.state === 'idle' || npc.state === 'stopped') npc.animateIdle(this.time);
     }

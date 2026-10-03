@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { LEVELS } from '../levels.js';
+import { COPY, levelName } from '../copy.js';
 import { MAX_LIVES } from '../gameState.js';
 
 // Tiny DOM builder: el('p', { class: 'sub' }, 'text', child, ...).
@@ -16,36 +17,50 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function svg(viewBox, markup, cls = '') {
+  const s = document.createElementNS(SVG_NS, 'svg');
+  s.setAttribute('viewBox', viewBox);
+  s.setAttribute('aria-hidden', 'true');
+  if (cls) s.setAttribute('class', cls);
+  s.innerHTML = markup;
+  return s;
+}
+
 const HEART_PATH = 'M12 21s-7.5-4.6-10-9.3C.3 8.4 2.2 4 6.2 4c2.3 0 4 1.3 5.8 3.4C13.8 5.3 15.5 4 17.8 4c4 0 5.9 4.4 4.2 7.7C19.5 16.4 12 21 12 21z';
 
 function heart(full) {
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', HEART_PATH);
-  path.setAttribute('class', full ? 'heart-full' : 'heart-empty');
-  svg.append(path);
-  return svg;
+  return svg('0 0 24 24', `<path d="${HEART_PATH}" class="${full ? 'heart-full' : 'heart-empty'}"/>`);
 }
 
-function controls() {
-  const row = (keys, text) => [el('span', {}, ...keys.map((k) => el('kbd', {}, k))), el('span', {}, text)];
-  return el(
-    'div',
-    { class: 'controls' },
-    ...row(['W A S D', '↑ ↓ ← →'], 'Bay quanh quán'),
-    ...row(['Click món ăn'], 'Đậu xuống ăn lấy điểm'),
-    ...row(['Vùng đỏ'], 'Tay sắp đập, bay đi ngay!'),
-    ...row(['M'], 'Tắt / bật tiếng'),
-  );
-}
+// Chalk doodles for the how-to-play board.
+const HOWTO_ICONS = {
+  keys: () =>
+    svg(
+      '0 0 64 48',
+      '<rect x="24" y="4" width="16" height="16" rx="3"/><rect x="6" y="26" width="16" height="16" rx="3"/>' +
+        '<rect x="24" y="26" width="16" height="16" rx="3"/><rect x="42" y="26" width="16" height="16" rx="3"/>' +
+        '<path d="M32 15v-6m-3 3 3-3 3 3"/>',
+    ),
+  bowl: () =>
+    svg(
+      '0 0 64 48',
+      '<path d="M8 22h48c-2 12-12 20-24 20S10 34 8 22z"/><path d="M14 22c4-4 10-6 18-6s14 2 18 6"/>' +
+        '<path d="M22 12c0-4 4-4 4-8M32 12c0-4 4-4 4-8"/><path d="M50 30l8 12-5-1-2 5z"/>',
+    ),
+  zone: () => svg('0 0 64 48', '<ellipse cx="32" cy="34" rx="26" ry="10"/><path d="M32 4v18m-6-6 6 6 6-6"/>', 'zone'),
+  'key-m': () => svg('0 0 64 48', '<rect x="18" y="8" width="28" height="28" rx="4"/><path d="M25 29V16l7 8 7-8v13"/>'),
+};
 
 // All HTML on top of the 3D canvas: HUD, world-anchored bars and popups,
-// menu/result boards and the fade between them.
+// the home screen and result boards, and the fade between them.
 export class UI {
   constructor(root, stage) {
     this.root = root;
     this.stage = stage;
+    this.muted = false;
+    this.quality = 'high';
     this.world = el('div', { class: 'world' });
     this.hudLayer = el('div');
     this.screenLayer = el('div');
@@ -54,8 +69,8 @@ export class UI {
     root.append(this.world, this.hudLayer, this.screenLayer, this.muteLabel, this.fadeLayer);
     this.bars = new Map();
 
-    // Enter always presses the board's main button, even after a click
-    // elsewhere (say, to switch the sound on) took focus away from it.
+    // Enter always presses the main button of the board on screen, even after
+    // a click elsewhere (say, to switch the sound on) took focus away from it.
     window.addEventListener('keydown', (e) => {
       if (e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
       if (!this.primary || document.activeElement instanceof HTMLButtonElement) return;
@@ -79,7 +94,13 @@ export class UI {
   }
 
   setMuted(muted) {
-    this.muteLabel.textContent = muted ? 'Đã tắt tiếng (M)' : '';
+    this.muted = muted;
+    this.muteLabel.textContent = muted ? COPY.muted : '';
+    if (this.soundItem?.isConnected) {
+      const next = this.soundButton(!muted);
+      this.soundItem.replaceWith(next);
+      this.soundItem = next;
+    }
   }
 
   // ----- HUD -----
@@ -88,13 +109,19 @@ export class UI {
     this.clearWorld();
     this.scoreText = el('span');
     this.scoreFill = el('div');
-    this.hearts = el('div', { class: 'pill hearts', 'aria-label': 'Mạng' });
+    this.hearts = el('div', { class: 'chalkboard plate hearts', 'aria-label': COPY.hud.lives });
     this.hudLayer.replaceChildren(
       el(
         'div',
         { class: 'hud' },
-        el('div', { class: 'pill' }, el('span', { class: 'label' }, 'Điểm'), this.scoreText, el('div', { class: 'score-bar' }, this.scoreFill)),
-        el('div', { class: 'pill' }, el('span', { class: 'label' }, `Màn ${levelIndex + 1}/${LEVELS.length}`), level.name),
+        el(
+          'div',
+          { class: 'chalkboard plate' },
+          el('span', { class: 'label' }, `${COPY.hud.score}:`),
+          this.scoreText,
+          el('div', { class: 'score-bar' }, this.scoreFill),
+        ),
+        el('div', { class: 'sign level-sign' }, `${COPY.hud.level(levelIndex)} · ${levelName(levelIndex)}`),
         this.hearts,
       ),
     );
@@ -107,7 +134,7 @@ export class UI {
   }
 
   setScore(score) {
-    this.scoreText.textContent = `${score} / ${this.target}`;
+    this.scoreText.textContent = `${score}/${this.target}`;
     this.scoreFill.style.width = `${Math.min(100, (score / this.target) * 100)}%`;
   }
 
@@ -119,6 +146,17 @@ export class UI {
         return h;
       }),
     );
+  }
+
+  showIntro(levelIndex) {
+    const card = el(
+      'div',
+      { class: 'intro' },
+      el('div', { class: 'sign' }, COPY.intro(levelIndex)),
+      el('div', { class: 'chalkboard' }, COPY.introSub),
+    );
+    card.addEventListener('animationend', () => card.remove());
+    this.world.append(card);
   }
 
   banner(text) {
@@ -153,58 +191,134 @@ export class UI {
     }
   }
 
-  popup(position, text) {
+  popup(position, text, cls = '') {
     const p = this.stage.project(position);
-    const node = el('div', { class: 'popup' }, text);
+    const node = el('div', { class: `popup ${cls}` }, text);
     node.style.left = `${p.x}px`;
     node.style.top = `${p.y}px`;
     node.addEventListener('animationend', () => node.remove());
     this.world.append(node);
   }
 
+  // "Á đù!" / "Ui da!" over the fly when it gets hit.
+  hitReaction(position) {
+    this.popup(position, COPY.hit[Math.floor(Math.random() * COPY.hit.length)], 'hit');
+  }
+
   // ----- screens -----
 
-  showScreen(...children) {
-    const buttons = children.flat().filter((c) => c instanceof HTMLButtonElement);
-    this.screenLayer.replaceChildren(el('div', { class: 'screen' }, el('div', { class: 'board' }, ...children)));
+  showScreen(cls, ...children) {
+    this.screenLayer.replaceChildren(el('div', { class: `screen ${cls}` }, ...children));
     // Focus the main action so Enter / Space trigger it.
-    this.primary = this.screenLayer.querySelector('button.btn');
+    this.primary = this.screenLayer.querySelector('[data-primary]') ?? this.screenLayer.querySelector('button');
     this.primary?.focus();
-    return buttons;
   }
 
   hideScreen() {
     this.screenLayer.replaceChildren();
     this.primary = null;
+    this.soundItem = null;
   }
 
-  button(label, onClick, secondary = false) {
+  // A button that runs `onClick` once by default, so double clicks during a
+  // fade can't start two games.
+  button(cls, content, onClick, { primary = false, once = true } = {}) {
     let fired = false;
-    return el(
-      'button',
-      {
-        class: secondary ? 'btn secondary' : 'btn',
-        type: 'button',
-        onclick: () => {
-          if (fired) return;
-          fired = true;
-          onClick();
-        },
+    const attrs = {
+      class: cls,
+      type: 'button',
+      onclick: () => {
+        if (once && fired) return;
+        fired = true;
+        onClick();
       },
-      label,
+    };
+    if (primary) attrs['data-primary'] = '';
+    return el('button', attrs, ...[content].flat());
+  }
+
+  signButton(label, onClick, opts) {
+    return this.button('sign-btn', label, onClick, opts);
+  }
+
+  // "Name ........ price" line on the chalkboard menu.
+  menuItem([name, price], onClick, opts) {
+    return this.button(
+      'chalk-item',
+      [el('span', {}, name), el('span', { class: 'dots' }), el('span', { class: 'price' }, price)],
+      onClick,
+      opts,
     );
   }
 
-  showMenu({ onPlay, audioLocked }) {
-    const hint = audioLocked ? el('p', { class: 'hint' }, 'Click hoặc bấm phím bất kỳ để bật âm thanh') : null;
+  soundButton(on) {
+    return this.menuItem(COPY.menu.sound(on), () => this.onToggleSound?.(), { once: false });
+  }
+
+  qualityButton() {
+    const item = this.menuItem(COPY.menu.quality(this.quality === 'high'), () => {
+      this.quality = this.quality === 'high' ? 'low' : 'high';
+      this.onQuality?.(this.quality);
+      item.replaceWith(this.qualityButton());
+    }, { once: false });
+    return item;
+  }
+
+  titleSign() {
+    return el(
+      'div',
+      { class: 'sign title-sign' },
+      el('h1', {}, COPY.title),
+      el('p', { class: 'slogan' }, COPY.slogan),
+      el('div', { class: 'strip' }, COPY.signStrip),
+    );
+  }
+
+  showMenu({ onPlay, onToggleSound, onQuality, audioLocked }) {
+    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked };
+    this.onToggleSound = onToggleSound;
+    this.onQuality = onQuality;
+    this.soundItem = this.soundButton(!this.muted);
+    const hint = audioLocked() ? el('p', { class: 'hint' }, COPY.audioHint) : null;
     this.showScreen(
-      el('h1', {}, 'Con Ruồi'),
-      el('p', { class: 'sub' }, 'Làm con ruồi ở quán ăn vỉa hè: ăn phở, bún, cơm, chè và né những bàn tay!'),
-      controls(),
-      el('div', { class: 'buttons' }, this.button('Chơi', onPlay)),
-      hint,
+      'home',
+      this.titleSign(),
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        el('h3', { class: 'chalk-title' }, COPY.menuTitle),
+        this.menuItem(COPY.menu.play, onPlay, { primary: true }),
+        this.menuItem(COPY.menu.howTo, () => this.showHowTo(), { once: false }),
+        this.soundItem,
+        this.qualityButton(),
+        hint,
+      ),
     );
     this.menuHint = hint;
+  }
+
+  showHowTo() {
+    this.showScreen(
+      'home',
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        el('h2', {}, COPY.howToTitle),
+        el(
+          'div',
+          { class: 'howto' },
+          ...COPY.howTo.flatMap(([icon, title, text]) => [
+            HOWTO_ICONS[icon](),
+            el('div', {}, el('b', {}, title), el('span', {}, text)),
+          ]),
+        ),
+        el(
+          'div',
+          { class: 'actions' },
+          this.button('chalk-link', COPY.back, () => this.showMenu(this.menuOptions), { primary: true }),
+        ),
+      ),
+    );
   }
 
   hideAudioHint() {
@@ -215,32 +329,58 @@ export class UI {
     const last = levelIndex >= LEVELS.length - 1;
     if (last) {
       this.showScreen(
-        el('h1', {}, 'Chiến thắng!'),
-        el('p', { class: 'sub' }, `Ăn sạch cả ${LEVELS.length} quán!`),
-        el('div', { class: 'stats' }, el('span', {}, 'Tổng điểm ', el('b', {}, String(totalScore)))),
-        el('div', { class: 'buttons' }, this.button('Chơi Lại', onRestart), this.button('Menu', onMenu, true)),
+        'result',
+        el(
+          'div',
+          { class: 'chalkboard board' },
+          el('h2', {}, COPY.victory),
+          el('p', { class: 'sub' }, COPY.victorySub),
+          el('div', { class: 'stats' }, el('span', {}, COPY.totalScore), el('b', {}, String(totalScore))),
+          el(
+            'div',
+            { class: 'actions' },
+            this.signButton(COPY.retry, onRestart, { primary: true }),
+            this.button('chalk-link', COPY.home, onMenu),
+          ),
+        ),
       );
       return;
     }
     this.showScreen(
-      el('h2', {}, `Xong màn ${levelIndex + 1}!`),
-      el('p', { class: 'sub' }, `Tiếp theo: ${LEVELS[levelIndex + 1].name}`),
+      'result',
       el(
         'div',
-        { class: 'stats' },
-        el('span', {}, 'Điểm màn này ', el('b', {}, String(levelScore))),
-        el('span', {}, `Tổng điểm ${totalScore} · Còn ${lives} mạng`),
+        { class: 'chalkboard board' },
+        el('h2', {}, COPY.levelDone(levelIndex)),
+        el('p', { class: 'sub' }, COPY.nextLevel(levelIndex)),
+        el(
+          'div',
+          { class: 'stats' },
+          el('span', {}, COPY.levelScore),
+          el('b', {}, String(levelScore)),
+          el('span', {}, `${COPY.totalScore} ${totalScore} · ${COPY.livesLeft(lives)}`),
+        ),
+        el('div', { class: 'actions' }, this.signButton(COPY.continue, onNext, { primary: true })),
       ),
-      el('div', { class: 'buttons' }, this.button('Tiếp Tục', onNext)),
     );
   }
 
   showGameOver({ totalScore, levelIndex }, { onRestart, onMenu }) {
     this.showScreen(
-      el('h2', {}, 'Bị đập rồi!'),
-      el('p', { class: 'sub' }, `Dừng ở màn ${levelIndex + 1} / ${LEVELS.length}: ${LEVELS[levelIndex].name}`),
-      el('div', { class: 'stats' }, el('span', {}, 'Điểm ', el('b', {}, String(totalScore)))),
-      el('div', { class: 'buttons' }, this.button('Chơi Lại', onRestart), this.button('Menu', onMenu, true)),
+      'result',
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        el('h2', {}, COPY.gameOver),
+        el('p', { class: 'sub' }, COPY.gameOverSub(levelIndex)),
+        el('div', { class: 'stats' }, el('b', {}, COPY.score(totalScore))),
+        el(
+          'div',
+          { class: 'actions' },
+          this.signButton(COPY.retry, onRestart, { primary: true }),
+          this.button('chalk-link', COPY.home, onMenu),
+        ),
+      ),
     );
   }
 }

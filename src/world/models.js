@@ -140,7 +140,7 @@ export function stall(name) {
       map: textTexture(name, {
         width: 768,
         height: 160,
-        font: '800 64px "Baloo 2", sans-serif',
+        font: '60px "Paytone One", sans-serif',
         background: '#7d4f2b',
         color: '#ffe9b0',
       }),
@@ -231,20 +231,29 @@ export function pond(rand, radius) {
 
 // ----- furniture -----------------------------------------------------------
 
+// Low stainless-steel (inox) table, the street-food standard.
 export function table(w, d, h) {
   const g = new THREE.Group();
-  const top = mesh(new THREE.BoxGeometry(w, 0.08, d), mat('#d39a5d'));
-  top.position.y = h - 0.04;
+  const steel = mat('#e1e6ea', { roughness: 0.3, metalness: 0.45 });
+  const top = mesh(new THREE.BoxGeometry(w, 0.05, d), steel);
+  top.position.y = h - 0.025;
   g.add(top);
-  const rim = mesh(new THREE.BoxGeometry(w + 0.06, 0.05, d + 0.06), mat('#a8703f'));
-  rim.position.y = h - 0.1;
-  g.add(rim);
+  const lip = mesh(new THREE.BoxGeometry(w + 0.04, 0.07, d + 0.04), mat('#aeb5bb', { roughness: 0.35, metalness: 0.55 }));
+  lip.position.y = h - 0.07;
+  g.add(lip);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      const leg = mesh(new THREE.BoxGeometry(0.08, h - 0.1, 0.08), mat('#7d4f2b'));
-      leg.position.set(sx * (w / 2 - 0.15), (h - 0.1) / 2, sz * (d / 2 - 0.15));
+      const leg = mesh(new THREE.CylinderGeometry(0.03, 0.03, h - 0.08, 6), mat('#9aa2a8', { roughness: 0.35, metalness: 0.5 }));
+      leg.position.set(sx * (w / 2 - 0.12), (h - 0.08) / 2, sz * (d / 2 - 0.12));
       g.add(leg);
     }
+  }
+  // Shelf rail near the floor.
+  for (const sz of [-1, 1]) {
+    const rail = mesh(new THREE.CylinderGeometry(0.02, 0.02, w - 0.24, 5), mat('#9aa2a8', { roughness: 0.35, metalness: 0.5 }));
+    rail.rotation.z = Math.PI / 2;
+    rail.position.set(0, 0.12, sz * (d / 2 - 0.12));
+    g.add(rail);
   }
   return g;
 }
@@ -376,64 +385,300 @@ function che() {
   return g;
 }
 
+function soup(contents, color, radius = 0.27, y = 0.16) {
+  const surface = mesh(new THREE.CircleGeometry(radius, 12), mat(color), { cast: false });
+  surface.rotation.x = -Math.PI / 2;
+  surface.position.y = y;
+  contents.add(surface);
+}
+
+function smallPlate(radius = 0.34) {
+  const plate = mesh(new THREE.CylinderGeometry(radius, radius * 0.78, 0.04, 14), mat('#f7f4ec', { roughness: 0.5 }));
+  plate.position.y = 0.02;
+  return plate;
+}
+
+// Phở bò: clear golden broth, rare beef, rice noodles, spring onion.
+function phoBo(rand) {
+  const g = bowlShell('#3a6fb0');
+  const contents = new THREE.Group();
+  soup(contents, '#e7c27c');
+  bits(rand, contents, 8, () => new THREE.BoxGeometry(0.2, 0.02, 0.025), '#fff6d8', 0.165, 0.15);
+  bits(rand, contents, 4, () => new THREE.BoxGeometry(0.13, 0.015, 0.09), '#c97b6a', 0.172, 0.13);
+  bits(rand, contents, 9, () => new THREE.CylinderGeometry(0.018, 0.018, 0.012, 6), '#5fbf3a', 0.18, 0.2);
+  bits(rand, contents, 3, () => new THREE.IcosahedronGeometry(0.03, 0), '#2f8f3a', 0.18, 0.16);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bún chả: a bowl of dipping sauce with grilled pork patties and papaya,
+// beside a plate of white vermicelli and herbs.
+function bunCha(rand) {
+  const g = new THREE.Group();
+  const bowl = bowlShell('#c8102e');
+  bowl.scale.setScalar(0.72);
+  bowl.position.set(0.13, 0, -0.06);
+  g.add(bowl);
+  const plate = smallPlate(0.2);
+  plate.position.set(-0.17, 0.02, 0.1);
+  g.add(plate);
+
+  const contents = new THREE.Group();
+  const sauce = new THREE.Group();
+  soup(sauce, '#c98a3c');
+  bits(rand, sauce, 4, () => new THREE.IcosahedronGeometry(0.055, 0), '#6b3a1f', 0.18, 0.12);
+  bits(rand, sauce, 4, () => new THREE.BoxGeometry(0.06, 0.012, 0.03), '#f2c36b', 0.185, 0.14);
+  sauce.scale.setScalar(0.72);
+  sauce.position.copy(bowl.position);
+  contents.add(sauce);
+  const noodles = mesh(jitter(new THREE.IcosahedronGeometry(0.12, 1), 0.02, rand), mat('#ffffff'), { cast: false });
+  noodles.scale.set(1, 0.45, 1);
+  noodles.position.set(-0.19, 0.07, 0.1);
+  contents.add(noodles);
+  const herbs = mesh(jitter(new THREE.IcosahedronGeometry(0.08, 0), 0.02, rand), mat('#4caf50'));
+  herbs.position.set(-0.05, 0.08, 0.2);
+  contents.add(herbs);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+// Bánh cuốn: rolled rice sheets with fried shallots and chả lụa slices,
+// and a little bowl of fish sauce.
+function banhCuon(rand) {
+  const g = new THREE.Group();
+  g.add(smallPlate(0.34));
+  const dip = bowlShell('#3a6fb0');
+  dip.scale.setScalar(0.45);
+  dip.position.set(0.24, 0, -0.18);
+  g.add(dip);
+  const contents = new THREE.Group();
+  for (let i = 0; i < 4; i++) {
+    const roll = mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.26, 7), mat('#f4f1e6', { roughness: 0.4 }));
+    // Lying flat on the plate, angled a little.
+    roll.rotation.set(0, 0.5, Math.PI / 2, 'YXZ');
+    roll.position.set(-0.08 + (i % 2) * 0.02, 0.07 + Math.floor(i / 2) * 0.07, -0.12 + (i % 2) * 0.1 + Math.floor(i / 2) * 0.05);
+    contents.add(roll);
+  }
+  bits(rand, contents, 14, () => new THREE.IcosahedronGeometry(0.014, 0), '#c98a2e', 0.15, 0.14);
+  for (let i = 0; i < 3; i++) {
+    const cha = mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.02, 9), mat('#f1d3c2'));
+    cha.position.set(0.16 + i * 0.03, 0.05 + i * 0.012, 0.12 - i * 0.04);
+    cha.rotation.x = 0.3;
+    contents.add(cha);
+  }
+  const fishSauce = new THREE.Group();
+  soup(fishSauce, '#d9893a');
+  fishSauce.scale.setScalar(0.45);
+  fishSauce.position.copy(dip.position);
+  contents.add(fishSauce);
+  g.add(contents);
+  g.userData.contents = contents;
+  return g;
+}
+
+const DISH_BUILDERS = {
+  pho: (rand) => noodleBowl(rand, '#d9a85b', '#3a6fb0'),
+  bun: (rand) => noodleBowl(rand, '#d9542b', '#2e8b57'),
+  com: (rand) => comTam(rand),
+  che: () => che(),
+  'pho-bo': phoBo,
+  'bun-cha': bunCha,
+  'banh-cuon': banhCuon,
+};
+
+// Builds a dish model; every dish exposes `userData.contents`, hidden once
+// the dish has been eaten.
 export function dish(type, rand) {
-  if (type === 'pho') return noodleBowl(rand, '#d9a85b', '#3a6fb0');
-  if (type === 'bun') return noodleBowl(rand, '#d9542b', '#2e8b57');
-  if (type === 'com') return comTam(rand);
-  if (type === 'che') return che();
-  throw new Error(`unknown dish ${type}`);
+  const build = DISH_BUILDERS[type];
+  if (!build) throw new Error(`unknown dish ${type}`);
+  return build(rand);
 }
 
 // ----- characters ----------------------------------------------------------
 
-const SHIRTS = ['#4a7bd0', '#e07a3f', '#5aa65a', '#c94f7c', '#f2c94c', '#8a6fd1'];
+const SKINS = ['#f1c27d', '#e0ac69', '#f6d0a4', '#d9a066'];
 
-// A diner sitting on a stool, facing +z. Exposes the right arm pivot for the
-// eating animation and the wind-up pose.
-export function person(rand) {
+// Who sits at the stalls. Each archetype picks its clothes; `south` weights
+// how common it is in the southern regions instead of the default weight.
+const ARCHETYPES = {
+  // Chú xe ôm: helmet still on, windbreaker, long trousers.
+  xeOm: {
+    weight: 2,
+    south: 2,
+    outfit: (rand) => ({
+      shirt: pick(rand, ['#2f4a7a', '#55624a', '#7a5a3a']),
+      pants: '#3b3b44',
+      hair: 'short',
+      hat: 'helmet',
+      helmet: pick(rand, ['#ffd23f', '#e2483d', '#2f6fdf', '#ffffff', '#f08ac0']),
+    }),
+  },
+  // Cô văn phòng: long hair, blouse, dark trousers.
+  vanPhong: {
+    weight: 2,
+    south: 1.5,
+    outfit: (rand) => ({
+      shirt: pick(rand, ['#ffffff', '#f6d6e0', '#d6e8f6', '#f3e7c8']),
+      pants: pick(rand, ['#2b2b33', '#3a3550']),
+      hair: 'long',
+    }),
+  },
+  // Học sinh: white shirt, navy trousers and the red Young Pioneer scarf.
+  hocSinh: {
+    weight: 1.5,
+    south: 1.5,
+    outfit: () => ({ shirt: '#f7f7f2', pants: '#1f2f5c', hair: 'short', scarf: true }),
+  },
+  // Ông áo ba lỗ: white vest, bare arms, shorts, balding.
+  ongBaLo: {
+    weight: 2,
+    south: 2,
+    outfit: () => ({ shirt: '#f2f2ec', sleeve: 'skin', pants: '#3f5a7a', shorts: true, hair: 'bald' }),
+  },
+  // Cô áo bà ba: buttoned blouse, black silk trousers, hair in a bun.
+  aoBaBa: {
+    weight: 0.5,
+    south: 3,
+    outfit: (rand) => ({
+      shirt: pick(rand, ['#c9a27a', '#d9b8d0', '#9fbfa0', '#e8d2a8']),
+      pants: '#1b1b1f',
+      hair: 'bun',
+      buttons: true,
+      hat: rand() < 0.4 ? 'nonla' : null,
+    }),
+  },
+  // Bác đội nón lá.
+  bacNonLa: {
+    weight: 1.5,
+    south: 1,
+    outfit: (rand) => ({ shirt: pick(rand, ['#6b6f4a', '#7a5a3a', '#4f6a6a']), pants: '#3a3a30', hair: 'short', hat: 'nonla' }),
+  },
+};
+
+export const ARCHETYPE_NAMES = Object.keys(ARCHETYPES);
+
+export function pickArchetype(rand, { south = false } = {}) {
+  const entries = Object.entries(ARCHETYPES);
+  const total = entries.reduce((sum, [, a]) => sum + (south ? a.south : a.weight), 0);
+  let r = rand() * total;
+  for (const [name, a] of entries) {
+    r -= south ? a.south : a.weight;
+    if (r <= 0) return name;
+  }
+  return entries[0][0];
+}
+
+function hair(style, colour) {
   const g = new THREE.Group();
-  const shirt = pick(rand, SHIRTS);
-  const skin = pick(rand, ['#f1c27d', '#e0ac69', '#f6d0a4']);
-  g.add(stool());
+  const m = mat(colour);
+  if (style === 'bald') {
+    // A fringe around the back of the head only.
+    const fringe = mesh(new THREE.TorusGeometry(0.17, 0.05, 4, 10, Math.PI), m);
+    fringe.rotation.set(Math.PI / 2, 0, Math.PI);
+    fringe.position.set(0, -0.02, -0.03);
+    g.add(fringe);
+    return g;
+  }
+  const cap = mesh(new THREE.SphereGeometry(0.22, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), m);
+  cap.position.set(0, 0.03, -0.02);
+  cap.rotation.x = -0.25;
+  g.add(cap);
+  if (style === 'long') {
+    const back = mesh(new THREE.BoxGeometry(0.36, 0.5, 0.12), m);
+    back.position.set(0, -0.2, -0.15);
+    g.add(back);
+  }
+  if (style === 'bun') {
+    const bun = mesh(new THREE.SphereGeometry(0.09, 6, 5), m);
+    bun.position.set(0, 0.05, -0.22);
+    g.add(bun);
+  }
+  return g;
+}
 
-  const pants = mat(pick(rand, ['#2f3e5c', '#3b3b44', '#5b4636']));
+// A diner sitting on a stool, facing +z, dressed as `archetype`. Exposes
+// the head and arm pivots for the eating animation and the wind-up pose,
+// plus the skin and sleeve colours for the slapping hand.
+export function person(rand, archetype = pickArchetype(rand)) {
+  const outfit = ARCHETYPES[archetype].outfit(rand);
+  const g = new THREE.Group();
+  const skin = pick(rand, SKINS);
+  const shirt = outfit.shirt;
+  const sleeve = outfit.sleeve === 'skin' ? skin : shirt;
+  g.add(stool(rand() < 0.5 ? '#e2483d' : '#2f6fdf'));
+
+  const pants = mat(outfit.pants);
   const thigh = mesh(new THREE.BoxGeometry(0.36, 0.14, 0.42), pants);
   thigh.position.set(0, 0.5, 0.15);
   g.add(thigh);
-  const shin = mesh(new THREE.BoxGeometry(0.32, 0.44, 0.14), pants);
+  // Shorts stop at the knee and show bare shins.
+  const shin = mesh(new THREE.BoxGeometry(0.32, 0.44, 0.14), outfit.shorts ? mat(skin) : pants);
   shin.position.set(0, 0.24, 0.34);
   g.add(shin);
+  for (const x of [-0.09, 0.09]) {
+    const sandal = mesh(new THREE.BoxGeometry(0.12, 0.04, 0.22), mat('#3a2a20'));
+    sandal.position.set(x, 0.02, 0.38);
+    g.add(sandal);
+  }
 
   const torso = mesh(new THREE.BoxGeometry(0.48, 0.52, 0.3), mat(shirt));
   torso.position.y = 0.84;
   g.add(torso);
+  if (outfit.sleeve === 'skin') {
+    // Vest straps leave the shoulders bare.
+    for (const x of [-0.19, 0.19]) {
+      const shoulder = mesh(new THREE.BoxGeometry(0.1, 0.1, 0.3), mat(skin));
+      shoulder.position.set(x, 1.06, 0);
+      g.add(shoulder);
+    }
+  }
+  if (outfit.buttons) {
+    for (let i = 0; i < 4; i++) {
+      const b = mesh(new THREE.SphereGeometry(0.018, 5, 4), mat('#f4efe2'), { cast: false });
+      b.position.set(0.06, 1.0 - i * 0.1, 0.155);
+      g.add(b);
+    }
+  }
+  if (outfit.scarf) {
+    const scarf = mesh(new THREE.BoxGeometry(0.3, 0.06, 0.32), mat('#d9261c'));
+    scarf.position.set(0, 1.08, 0.01);
+    g.add(scarf);
+    const knot = mesh(new THREE.BoxGeometry(0.08, 0.16, 0.04), mat('#d9261c'));
+    knot.position.set(0, 0.98, 0.17);
+    knot.rotation.z = 0.2;
+    g.add(knot);
+  }
 
   const head = new THREE.Group();
   head.position.y = 1.28;
-  const face = mesh(new THREE.IcosahedronGeometry(0.21, 1), mat(skin));
-  head.add(face);
+  head.add(mesh(new THREE.IcosahedronGeometry(0.21, 1), mat(skin)));
   for (const x of [-0.07, 0.07]) {
     const eye = mesh(new THREE.BoxGeometry(0.04, 0.05, 0.02), mat('#2b2b2b'), { cast: false });
     eye.position.set(x, 0.02, 0.19);
     head.add(eye);
   }
-  if (rand() < 0.5) {
-    // Nón lá.
+  head.add(hair(outfit.hair, pick(rand, ['#1d1714', '#2b211c', '#3a2c22'])));
+  if (outfit.hat === 'nonla') {
     const hat = mesh(new THREE.ConeGeometry(0.4, 0.24, 10), mat('#e8d08a'));
     hat.position.y = 0.2;
     head.add(hat);
-  } else {
-    const hair = mesh(new THREE.SphereGeometry(0.22, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2), mat('#2b211c'));
-    hair.position.set(0, 0.03, -0.02);
-    hair.rotation.x = -0.25;
-    head.add(hair);
+  } else if (outfit.hat === 'helmet') {
+    const shell = mesh(new THREE.SphereGeometry(0.25, 8, 5, 0, Math.PI * 2, 0, Math.PI / 1.9), mat(outfit.helmet, { roughness: 0.35 }));
+    shell.position.y = 0.04;
+    head.add(shell);
+    const strap = mesh(new THREE.TorusGeometry(0.2, 0.012, 3, 10, Math.PI), mat('#222'), { cast: false });
+    strap.position.y = -0.02;
+    strap.rotation.set(0, Math.PI / 2, Math.PI);
+    head.add(strap);
   }
   g.add(head);
 
   const arm = (side) => {
     const pivot = new THREE.Group();
     pivot.position.set(side * 0.3, 1.04, 0);
-    const upper = mesh(new THREE.BoxGeometry(0.12, 0.42, 0.12), mat(shirt));
+    const upper = mesh(new THREE.BoxGeometry(0.12, 0.42, 0.12), mat(sleeve));
     upper.position.y = -0.2;
     pivot.add(upper);
     const hand = mesh(new THREE.BoxGeometry(0.11, 0.11, 0.11), mat(skin));
@@ -453,7 +698,7 @@ export function person(rand) {
   chopsticks.position.set(0, -0.48, 0.15);
   rightArm.add(chopsticks);
 
-  g.userData = { head, leftArm, rightArm, skin, shirt };
+  g.userData = { head, leftArm, rightArm, skin, shirt: sleeve, archetype };
   return g;
 }
 
@@ -478,24 +723,100 @@ export function slapHand(skin, shirt) {
   return g;
 }
 
-// The fly, facing +z, with flapping wing pivots in userData.
+// Tiny nón lá for the fly mascot; origin at the brim's centre.
+export function flyHat() {
+  const g = new THREE.Group();
+  const cone = mesh(new THREE.ConeGeometry(0.2, 0.13, 12), mat('#ecd38c'), { cast: false });
+  cone.position.y = 0.065;
+  g.add(cone);
+  const band = mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.025, 12), mat('#c9452f'), { cast: false });
+  band.position.y = 0.035;
+  g.add(band);
+  return g;
+}
+
+// The fly mascot, facing +z: a big head with big glossy eyes, a small body,
+// six legs and two wings. userData exposes the wing pivots, where the hat
+// sits, and setExpression('normal' | 'happy' | 'dizzy').
 export function fly() {
   const g = new THREE.Group();
   const shell = mat('#22262b', { roughness: 0.35 });
-  const abdomen = mesh(new THREE.SphereGeometry(0.13, 7, 5), shell);
+  const sheen = mat('#3d4a45', { roughness: 0.4 });
+
+  const abdomen = mesh(new THREE.SphereGeometry(0.1, 8, 6), shell);
   abdomen.scale.set(1, 0.85, 1.35);
-  abdomen.position.z = -0.1;
+  abdomen.position.set(0, -0.02, -0.12);
   g.add(abdomen);
-  const thorax = mesh(new THREE.SphereGeometry(0.11, 7, 5), mat('#3d4a45', { roughness: 0.4 }));
-  thorax.position.z = 0.06;
+  for (const z of [-0.08, -0.15]) {
+    const stripe = mesh(new THREE.TorusGeometry(0.083, 0.012, 4, 10), mat('#4f5d57'));
+    stripe.position.set(0, -0.02, z);
+    g.add(stripe);
+  }
+  const thorax = mesh(new THREE.SphereGeometry(0.085, 8, 6), sheen);
+  thorax.position.set(0, 0, 0.0);
   g.add(thorax);
-  const head = mesh(new THREE.SphereGeometry(0.09, 7, 5), shell);
-  head.position.set(0, 0.01, 0.18);
+
+  // Head bigger than the body, cartoon style.
+  const head = new THREE.Group();
+  head.position.set(0, 0.07, 0.15);
   g.add(head);
-  for (const x of [-0.065, 0.065]) {
-    const eye = mesh(new THREE.SphereGeometry(0.065, 7, 5), mat('#c0392b', { roughness: 0.3 }));
-    eye.position.set(x, 0.04, 0.2);
-    g.add(eye);
+  head.add(mesh(new THREE.SphereGeometry(0.15, 10, 8), shell));
+
+  const eyes = [];
+  for (const side of [-1, 1]) {
+    const eye = new THREE.Group();
+    eye.position.set(side * 0.085, 0.03, 0.1);
+    const ball = mesh(new THREE.SphereGeometry(0.085, 10, 8), mat('#b3262b', { roughness: 0.25 }));
+    eye.add(ball);
+    const sparkle = mesh(new THREE.SphereGeometry(0.025, 6, 4), mat('#ffffff', { roughness: 0.2 }));
+    sparkle.position.set(side * -0.02, 0.035, 0.07);
+    eye.add(sparkle);
+    // Spiral ring shown while dizzy.
+    const swirl = mesh(new THREE.TorusGeometry(0.045, 0.01, 4, 12), mat('#ffffff'));
+    swirl.position.z = 0.08;
+    swirl.visible = false;
+    eye.add(swirl);
+    eye.userData = { ball, sparkle, swirl };
+    head.add(eye);
+    eyes.push(eye);
+  }
+
+  const mouths = {
+    normal: mesh(new THREE.BoxGeometry(0.05, 0.012, 0.01), mat('#f2d0c4')),
+    happy: mesh(new THREE.TorusGeometry(0.035, 0.01, 4, 10, Math.PI), mat('#f2d0c4')),
+    dizzy: mesh(new THREE.TorusGeometry(0.022, 0.009, 4, 10), mat('#f2d0c4')),
+  };
+  mouths.normal.position.set(0, -0.07, 0.135);
+  mouths.happy.position.set(0, -0.055, 0.135);
+  mouths.happy.rotation.z = Math.PI; // smile
+  mouths.dizzy.position.set(0, -0.07, 0.135);
+  for (const m of Object.values(mouths)) head.add(m);
+
+  // Dizzy stars circling the head.
+  const stars = new THREE.Group();
+  stars.position.y = 0.2;
+  for (let i = 0; i < 3; i++) {
+    const star = mesh(new THREE.OctahedronGeometry(0.035, 0), mat('#ffd23f', { emissive: '#ffb000', emissiveIntensity: 0.6 }));
+    const a = (i / 3) * Math.PI * 2;
+    star.position.set(Math.cos(a) * 0.17, 0, Math.sin(a) * 0.17);
+    stars.add(star);
+  }
+  stars.visible = false;
+  head.add(stars);
+
+  // Hat anchor on top of the head.
+  const hatAnchor = new THREE.Object3D();
+  hatAnchor.position.set(0, 0.12, -0.01);
+  hatAnchor.rotation.x = -0.15;
+  head.add(hatAnchor);
+
+  for (const side of [-1, 1]) {
+    for (const z of [-0.05, 0.0, 0.05]) {
+      const leg = mesh(new THREE.CylinderGeometry(0.008, 0.006, 0.12, 4), shell);
+      leg.position.set(side * 0.06, -0.08, z);
+      leg.rotation.z = side * 0.5;
+      g.add(leg);
+    }
   }
 
   const wingMat = new THREE.MeshStandardMaterial({
@@ -509,7 +830,7 @@ export function fly() {
   const wings = [];
   for (const side of [-1, 1]) {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.06, 0.1, 0.02);
+    pivot.position.set(side * 0.05, 0.07, -0.02);
     const wing = new THREE.Mesh(new THREE.CircleGeometry(0.18, 10), wingMat);
     wing.scale.set(1, 0.55, 1);
     wing.rotation.x = -Math.PI / 2;
@@ -520,12 +841,29 @@ export function fly() {
     g.add(pivot);
     wings.push(pivot);
   }
+
   // The game draws a blob shadow right under the fly instead; a sun shadow
   // off to one side makes its position harder to read.
   g.traverse((o) => {
     if (o.isMesh) o.castShadow = false;
   });
-  g.userData.wings = wings;
+
+  let current = null;
+  const setExpression = (name) => {
+    if (name === current) return;
+    current = name;
+    for (const [key, m] of Object.entries(mouths)) m.visible = key === name;
+    for (const eye of eyes) {
+      // Happy eyes squeeze shut into arcs; dizzy eyes show spirals.
+      eye.scale.set(1, name === 'happy' ? 0.35 : 1, 1);
+      eye.userData.sparkle.visible = name === 'normal';
+      eye.userData.swirl.visible = name === 'dizzy';
+    }
+    stars.visible = name === 'dizzy';
+  };
+  setExpression('normal');
+
+  g.userData = { wings, hatAnchor, stars, swirls: eyes.map((e) => e.userData.swirl), setExpression };
   g.scale.setScalar(1.7);
   return g;
 }
