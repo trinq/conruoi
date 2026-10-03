@@ -15,6 +15,8 @@ export const COPY = {
     play: ['Vô quán!', '0đ'],
     howTo: ['Cách chơi', 'miễn phí'],
     sound: (on) => ['Âm thanh', on ? 'Bật' : 'Tắt'],
+    // 'Nhẹ' turns shadows off for weaker machines.
+    quality: (high) => ['Đồ hoạ', high ? 'Đẹp' : 'Nhẹ'],
   },
   audioHint: 'Click hoặc bấm phím bất kỳ để bật âm thanh',
   muted: 'Đã tắt tiếng (M)',

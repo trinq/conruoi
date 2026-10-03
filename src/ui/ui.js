@@ -60,6 +60,7 @@ export class UI {
     this.root = root;
     this.stage = stage;
     this.muted = false;
+    this.quality = 'high';
     this.world = el('div', { class: 'world' });
     this.hudLayer = el('div');
     this.screenLayer = el('div');
@@ -254,6 +255,15 @@ export class UI {
     return this.menuItem(COPY.menu.sound(on), () => this.onToggleSound?.(), { once: false });
   }
 
+  qualityButton() {
+    const item = this.menuItem(COPY.menu.quality(this.quality === 'high'), () => {
+      this.quality = this.quality === 'high' ? 'low' : 'high';
+      this.onQuality?.(this.quality);
+      item.replaceWith(this.qualityButton());
+    }, { once: false });
+    return item;
+  }
+
   titleSign() {
     return el(
       'div',
@@ -264,9 +274,10 @@ export class UI {
     );
   }
 
-  showMenu({ onPlay, onToggleSound, audioLocked }) {
-    this.menuOptions = { onPlay, onToggleSound, audioLocked };
+  showMenu({ onPlay, onToggleSound, onQuality, audioLocked }) {
+    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked };
     this.onToggleSound = onToggleSound;
+    this.onQuality = onQuality;
     this.soundItem = this.soundButton(!this.muted);
     const hint = audioLocked() ? el('p', { class: 'hint' }, COPY.audioHint) : null;
     this.showScreen(
@@ -279,6 +290,7 @@ export class UI {
         this.menuItem(COPY.menu.play, onPlay, { primary: true }),
         this.menuItem(COPY.menu.howTo, () => this.showHowTo(), { once: false }),
         this.soundItem,
+        this.qualityButton(),
         hint,
       ),
     );

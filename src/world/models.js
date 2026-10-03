@@ -231,20 +231,29 @@ export function pond(rand, radius) {
 
 // ----- furniture -----------------------------------------------------------
 
+// Low stainless-steel (inox) table, the street-food standard.
 export function table(w, d, h) {
   const g = new THREE.Group();
-  const top = mesh(new THREE.BoxGeometry(w, 0.08, d), mat('#d39a5d'));
-  top.position.y = h - 0.04;
+  const steel = mat('#e1e6ea', { roughness: 0.3, metalness: 0.45 });
+  const top = mesh(new THREE.BoxGeometry(w, 0.05, d), steel);
+  top.position.y = h - 0.025;
   g.add(top);
-  const rim = mesh(new THREE.BoxGeometry(w + 0.06, 0.05, d + 0.06), mat('#a8703f'));
-  rim.position.y = h - 0.1;
-  g.add(rim);
+  const lip = mesh(new THREE.BoxGeometry(w + 0.04, 0.07, d + 0.04), mat('#aeb5bb', { roughness: 0.35, metalness: 0.55 }));
+  lip.position.y = h - 0.07;
+  g.add(lip);
   for (const sx of [-1, 1]) {
     for (const sz of [-1, 1]) {
-      const leg = mesh(new THREE.BoxGeometry(0.08, h - 0.1, 0.08), mat('#7d4f2b'));
-      leg.position.set(sx * (w / 2 - 0.15), (h - 0.1) / 2, sz * (d / 2 - 0.15));
+      const leg = mesh(new THREE.CylinderGeometry(0.03, 0.03, h - 0.08, 6), mat('#9aa2a8', { roughness: 0.35, metalness: 0.5 }));
+      leg.position.set(sx * (w / 2 - 0.12), (h - 0.08) / 2, sz * (d / 2 - 0.12));
       g.add(leg);
     }
+  }
+  // Shelf rail near the floor.
+  for (const sz of [-1, 1]) {
+    const rail = mesh(new THREE.CylinderGeometry(0.02, 0.02, w - 0.24, 5), mat('#9aa2a8', { roughness: 0.35, metalness: 0.5 }));
+    rail.rotation.z = Math.PI / 2;
+    rail.position.set(0, 0.12, sz * (d / 2 - 0.12));
+    g.add(rail);
   }
   return g;
 }

@@ -67,6 +67,7 @@ export class App {
     this.ui.showMenu({
       onPlay: () => this.go(newGame()),
       onToggleSound: () => this.toggleSound(),
+      onQuality: (level) => this.stage.setQuality(level),
       audioLocked: () => this.audio.locked,
     });
   }
@@ -155,7 +156,7 @@ export class App {
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
-    this.env.update(now);
+    this.env.update(now, dt / 1000);
     if (this.mode === 'play') {
       this.round.update(dt, moveDirection(this.keys.state()));
       this.gameAudio.update(this.round.fly, dt / 1000);

@@ -1,18 +1,18 @@
 import * as THREE from 'three';
 
 const FOV = 30;
-const PITCH = THREE.MathUtils.degToRad(46); // camera looks down at this angle
-const TARGET = new THREE.Vector3(0, 0, -1.0);
+const PITCH = THREE.MathUtils.degToRad(40); // camera looks down at this angle
+const TARGET = new THREE.Vector3(0, 0, -1.6);
 // Half extents of the play area the camera must always keep in view.
 const HALF_WIDTH = 9.2;
-const HALF_HEIGHT = 6.3;
+const HALF_HEIGHT = 6.8;
 
 // Lighting per time of day. `sun` is [colour, intensity, position].
 const LIGHTING = {
   morning: {
     background: '#dcecf7',
     hemi: ['#e6f2ff', '#8fae78', 0.95],
-    sun: ['#ffe4bf', 2.5, [9, 11, -6]],
+    sun: ['#ffe4bf', 2.6, [10, 12, 9]],
     exposure: 1.0,
   },
   noon: {
@@ -119,6 +119,20 @@ export class Stage {
     if (!this.scene.fog || !this.distance) return;
     this.scene.fog.near = this.distance + 16;
     this.scene.fog.far = this.distance + 52;
+  }
+
+  // 'high' draws shadows at full resolution; 'low' turns shadows off and
+  // renders at one pixel per CSS pixel, for weaker laptops.
+  setQuality(level) {
+    const high = level === 'high';
+    this.renderer.setPixelRatio(high ? Math.min(window.devicePixelRatio, 2) : 1);
+    this.renderer.shadowMap.enabled = high;
+    this.sun.castShadow = high;
+    // Materials compile shadow support in, so they must be rebuilt.
+    this.scene.traverse((o) => {
+      if (o.material) for (const m of [o.material].flat()) m.needsUpdate = true;
+    });
+    this.resize();
   }
 
   shake(ms, amount = 0.08) {

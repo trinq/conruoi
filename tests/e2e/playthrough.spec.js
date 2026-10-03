@@ -37,6 +37,19 @@ test('the menu sound item and the M key toggle the same setting', async ({ page 
   await expectNoErrors(errors);
 });
 
+test('the graphics item switches shadows off and back on', async ({ page }) => {
+  const errors = await openGame(page);
+  const item = () => page.locator('.chalk-item', { hasText: COPY.menu.quality(true)[0] });
+  const shadows = () => page.evaluate(() => window.__app.stage.renderer.shadowMap.enabled);
+  expect(await shadows()).toBe(true);
+  await item().click();
+  await expect(item()).toContainText(COPY.menu.quality(false)[1]);
+  expect(await shadows()).toBe(false);
+  await item().click();
+  expect(await shadows()).toBe(true);
+  await expectNoErrors(errors);
+});
+
 test('clicking a dish lands the fly and eating fills it up', async ({ page }) => {
   const errors = await openGame(page);
   await startGame(page);
