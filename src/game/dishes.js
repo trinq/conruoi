@@ -21,11 +21,11 @@ const CATALOGUE = {
   'banh-mi': { name: 'Bánh mì', tier: 'low', model: 'banh-mi' },
   'hu-tieu': { name: 'Hủ tiếu', tier: 'high', model: 'hu-tieu' },
   'com-tam': { name: 'Cơm tấm', tier: 'medium', model: 'com-tam' },
-  lau: { name: 'Lẩu', tier: 'high', model: 'pho' },
-  'oc-xao': { name: 'Ốc xào', tier: 'medium', model: 'com' },
-  'banh-trang-nuong': { name: 'Bánh tráng nướng', tier: 'low', model: 'com' },
+  lau: { name: 'Lẩu', tier: 'high', model: 'lau' },
+  'oc-xao': { name: 'Ốc xào', tier: 'medium', model: 'oc-xao' },
+  'banh-trang-nuong': { name: 'Bánh tráng nướng', tier: 'low', model: 'banh-trang-nuong' },
   che: { name: 'Chè', tier: 'bonus', model: 'che' },
-  'xien-que': { name: 'Xiên que', tier: 'bonus', model: 'che' },
+  'xien-que': { name: 'Xiên que', tier: 'bonus', model: 'xien-que' },
 };
 
 export const DISHES = Object.fromEntries(

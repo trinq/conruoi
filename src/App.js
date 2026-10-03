@@ -50,7 +50,7 @@ export class App {
     const level = LEVELS[levelIndex];
     this.round = new Round(this.stage.scene, level, levelIndex, { lives });
     this.stage.setTimeOfDay(level.timeOfDay);
-    this.env.setRegion(level.region, level.timeOfDay);
+    this.env.setRegion(level.region);
   }
 
   // M key and the menu's sound item share this.

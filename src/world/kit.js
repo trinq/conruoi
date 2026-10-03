@@ -834,9 +834,9 @@ export class SignAtlas {
       ctx.fillStyle = fg;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const mainH = sub ? ph * 0.46 : ph * 0.62;
-      fitText(ctx, text, pw * 0.92, mainH, '"Paytone One", sans-serif');
-      ctx.fillText(text, pw / 2, sub ? ph * 0.4 : ph / 2 + ph * 0.03);
+      // Leave room above capitals for stacked Vietnamese accents (Ố, Ấ).
+      fitText(ctx, text, pw * 0.92, sub ? ph * 0.36 : ph * 0.48, '"Paytone One", sans-serif');
+      ctx.fillText(text, pw / 2, sub ? ph * 0.45 : ph * 0.55);
       if (sub) {
         ctx.fillStyle = band;
         fitText(ctx, sub, pw * 0.86, ph * 0.2, '"Paytone One", sans-serif');
@@ -857,6 +857,7 @@ function fitText(ctx, text, maxW, maxH, family) {
   } while (ctx.measureText(text).width > maxW && size > 8);
 }
 
+const LIT_WINDOW = mat('#ffd98a', { emissive: '#ffc35a', emissiveIntensity: 0.9 });
 const ALLEY_WALLS = ['#bfe3d6', '#f4c7c3', '#f6e3a1', '#cfe0f2', '#f2f0e8', '#e8d4f0', '#f7d7a8', '#c9e8b8'];
 const GRILLES = ['#2f6f8f', '#3f7d5a', '#7a2f2f', '#2b2b30', '#c9cdd1'];
 const TIN = ['#3f6fae', '#9a5a3a', '#a7b0b5', '#b8432f', '#5d8a9e'];
@@ -916,9 +917,10 @@ function inoxTank() {
 // a corrugated tin awning over a rolling-shutter shopfront, iron grilles on
 // the windows and balconies, and a tin roof or a flat roof with an inox
 // water tank. `sign` hangs a plastic sign (from `atlas`) above the awning.
+// `lit` is the share of windows with the lights on inside (at night).
 export function alleyHouse(
   rand,
-  { width = 4, floors = 3, depth = 7, roof = rand() < 0.5 ? 'tin' : 'flat', sign = null, signColours, atlas, shutterDown = null } = {},
+  { width = 4, floors = 3, depth = 7, roof = rand() < 0.5 ? 'tin' : 'flat', sign = null, signColours, atlas, shutterDown = null, lit = 0 } = {},
 ) {
   const g = new THREE.Group();
   const groundH = 3.1;
@@ -974,20 +976,22 @@ export function alleyHouse(
 
   if (sign && atlas) {
     const s = atlas.sign(sign, Math.min(width - 0.4, 3.8), 0.75, signColours);
-    s.position.set(0, groundH + 0.85, 0.08);
+    // Proud of the wall, in front of the first-floor window grille.
+    s.position.set(0, groundH + 0.85, 0.22);
     g.add(s);
   }
 
   for (let f = 1; f < floors; f++) {
     const y = groundH + floorH * (f - 1);
     const winW = Math.min(1.5, width * 0.38);
-    const glass = mesh(new THREE.BoxGeometry(winW, 1.3, 0.05), mat('#4a5a66', { roughness: 0.3 }), { cast: false });
+    const glass = mesh(new THREE.BoxGeometry(winW, 1.3, 0.05), lit && rand() < lit ? LIT_WINDOW : mat('#4a5a66', { roughness: 0.3 }), { cast: false });
     glass.position.set(0, y + 1.35, 0.03);
     g.add(glass);
     const bars = grille(winW + 0.1, 1.35, iron);
     bars.position.set(0, y + 1.35, 0.12);
     g.add(bars);
-    if (rand() < 0.65) {
+    // No balcony right above a sign, so the sign stays readable.
+    if (!(sign && f === 1) && rand() < 0.65) {
       // Balcony slab with a grille front, plants and sometimes laundry.
       const slab = mesh(new THREE.BoxGeometry(width - 0.2, 0.12, 0.75), mat('#d9d4ca'));
       slab.position.set(0, y + 0.05, 0.37);
@@ -1100,8 +1104,8 @@ export function foodCart(rand, { label = 'HỦ TIẾU', atlas, colours, pot = tr
       ctx.fillStyle = fg;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      fitText(ctx, label, pw * 0.9, ph * 0.72, '"Paytone One", sans-serif');
-      ctx.fillText(label, pw / 2, ph / 2 + 2);
+      fitText(ctx, label, pw * 0.9, ph * 0.55, '"Paytone One", sans-serif');
+      ctx.fillText(label, pw / 2, ph * 0.56);
     });
     s.position.set(0, 0.6, d / 2 + 0.01);
     g.add(s);
@@ -1127,6 +1131,98 @@ export function foodCart(rand, { label = 'HỦ TIẾU', atlas, colours, pot = tr
       g.userData.steam.push(puff);
     }
     g.userData.potAt = new THREE.Vector3(w / 2 + 0.35, -0.15, 0);
+  }
+  return g;
+}
+
+// ----- chợ đêm -----
+
+// Shared glowing materials for the night market, so every bulb of one
+// colour and every fluorescent tube bakes into one draw call each.
+export function nightGlow() {
+  const glow = (colour, intensity) =>
+    new THREE.MeshStandardMaterial({ color: colour, emissive: colour, emissiveIntensity: intensity, flatShading: true, roughness: 0.6 });
+  return {
+    bulbs: ['#ffd27a', '#ff6b5a', '#7ad8ff', '#9cff8a', '#ffd27a'].map((c) => glow(c, 2.2)),
+    tube: glow('#eaf8ff', 1.6),
+  };
+}
+
+// Dây đèn: a cord sagging between two points with round bulbs along it,
+// cycling through `glow.bulbs`.
+export function stringLights(from, to, glow, { spacing = 0.45, sag = 0.6, offset = 0 } = {}) {
+  const g = new THREE.Group();
+  const cord = mat('#1d1d20');
+  const len = from.distanceTo(to);
+  const n = Math.max(2, Math.round(len / spacing));
+  const at = (t) => from.clone().lerp(to, t).setY(THREE.MathUtils.lerp(from.y, to.y, t) - Math.sin(t * Math.PI) * sag);
+  const bulb = new THREE.IcosahedronGeometry(0.065, 0);
+  for (let i = 0; i < n; i++) {
+    const a = at(i / n);
+    const b = at((i + 1) / n);
+    const seg = mesh(new THREE.BoxGeometry(0.012, 0.012, a.distanceTo(b)), cord, { cast: false });
+    seg.position.copy(a).lerp(b, 0.5);
+    seg.lookAt(b);
+    g.add(seg);
+    if (i > 0) {
+      const m = mesh(bulb, glow.bulbs[(i + offset) % glow.bulbs.length], { cast: false });
+      m.position.copy(a).add(new THREE.Vector3(0, -0.08, 0));
+      g.add(m);
+    }
+  }
+  return g;
+}
+
+const TARPS = ['#c8302a', '#2f5fae', '#2e8b57', '#e08a1e', '#7a3fa0'];
+const GOODS = ['#e2483d', '#f2c94c', '#2f6fdf', '#f08ac0', '#5aa65a', '#ffffff', '#1d1d20', '#f08a24'];
+
+// Sạp chợ đêm: a stall under a canvas tarp on thin poles, a fluorescent
+// tube under it, a table piled with goods (clothes, fruit, toys) and a lit
+// sign hung from the tarp's front edge.
+export function marketStall(rand, { width = 2.6, depth = 1.8, sign = null, signColours, atlas, glow }) {
+  const g = new THREE.Group();
+  const pole = mat('#8c8f93', { roughness: 0.4 });
+  const h = 2.5;
+  for (const x of [-width / 2, width / 2]) {
+    for (const z of [-depth / 2, depth / 2]) {
+      const p = mesh(new THREE.CylinderGeometry(0.03, 0.03, z > 0 ? h : h + 0.3, 5), pole);
+      p.position.set(x, (z > 0 ? h : h + 0.3) / 2, z);
+      g.add(p);
+    }
+  }
+  const tarp = mesh(new THREE.BoxGeometry(width + 0.3, 0.04, depth + 0.4), mat(pick(rand, TARPS), { roughness: 0.9 }));
+  tarp.position.set(0, h + 0.17, 0);
+  tarp.rotation.x = 0.17;
+  g.add(tarp);
+  const valance = mesh(new THREE.BoxGeometry(width + 0.3, 0.25, 0.03), tarp.material, { cast: false });
+  valance.position.set(0, h - 0.05, depth / 2 + 0.2);
+  g.add(valance);
+  if (glow) {
+    const tube = mesh(new THREE.BoxGeometry(width * 0.6, 0.05, 0.05), glow.tube, { cast: false });
+    tube.position.set(0, h - 0.05, 0);
+    g.add(tube);
+  }
+  const table = mesh(new THREE.BoxGeometry(width - 0.2, 0.08, depth - 0.5), mat('#a9b0b5', { roughness: 0.4 }));
+  table.position.set(0, 0.8, 0);
+  g.add(table);
+  const cloth = mesh(new THREE.BoxGeometry(width - 0.2, 0.75, 0.03), mat(pick(rand, ['#f2f2ec', '#c8302a', '#2f5fae'])), { cast: false });
+  cloth.position.set(0, 0.42, (depth - 0.5) / 2);
+  g.add(cloth);
+  const kind = rand();
+  for (let i = 0; i < Math.round(width * 4); i++) {
+    const x = range(rand, -width / 2 + 0.25, width / 2 - 0.25);
+    const z = range(rand, -depth / 2 + 0.4, depth / 2 - 0.4);
+    const geo =
+      kind < 0.4 ? new THREE.BoxGeometry(0.3, range(rand, 0.06, 0.2), 0.24) : kind < 0.7 ? new THREE.IcosahedronGeometry(0.1, 0) : new THREE.BoxGeometry(0.14, 0.18, 0.14);
+    const item = mesh(geo, mat(pick(rand, GOODS)));
+    item.position.set(x, 0.92, z);
+    item.rotation.y = rand() * 3;
+    g.add(item);
+  }
+  if (sign && atlas) {
+    const s = atlas.sign(sign, Math.min(width, 2.6), 0.5, signColours);
+    s.position.set(0, h + 0.55, depth / 2 + 0.25);
+    g.add(s);
   }
   return g;
 }

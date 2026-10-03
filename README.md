@@ -28,7 +28,7 @@ On a machine that already has Chromium, point the tests at it with `CHROMIUM_PAT
 Code layout:
 
 - `src/world/`: renderer, camera and lights (`Stage.js`), scenery (`environment.js`), low-poly model factories (`models.js`)
-- `src/world/scenes/`: one street scene per region (Hà Nội, Huế, Hội An, the Sài Gòn alley), built from the shared Vietnamese street kit in `src/world/kit.js`
+- `src/world/scenes/`: one street scene per region (Hà Nội, Huế, Hội An, the Sài Gòn alley and night market), built from the shared Vietnamese street kit in `src/world/kit.js`
 - `src/game/`: gameplay (`Round.js` runs one level; `Fly.js`, `Npc.js`, `Food.js`, `Table.js`)
 - `src/ui/`: HTML HUD, menus and result boards over the canvas
 - `src/audio/`: synthesized sound effects and the Web Audio player

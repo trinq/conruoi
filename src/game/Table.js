@@ -1,4 +1,5 @@
 import { table as tableModel } from '../world/models.js';
+import { bakeStatic } from '../world/bake.js';
 
 export const TABLE_HEIGHT = 0.62;
 
@@ -10,7 +11,7 @@ export class Table {
     this.w = w;
     this.d = d;
     this.height = TABLE_HEIGHT;
-    this.model = tableModel(w, d, TABLE_HEIGHT);
+    this.model = bakeStatic(tableModel(w, d, TABLE_HEIGHT));
     this.model.position.set(x, 0, z);
   }
 
