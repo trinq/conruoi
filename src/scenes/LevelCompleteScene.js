@@ -5,6 +5,7 @@ import { TEXT_STYLE } from '../ui/style.js';
 import { fadeIn, fadeTo } from '../ui/transition.js';
 import { newGame } from '../gameState.js';
 import { LEVELS } from '../levels.js';
+import { playSfx } from '../audio/sounds.js';
 
 // Shown after reaching a level's target score. After the last level it
 // doubles as the victory screen.
@@ -50,6 +51,7 @@ export class LevelCompleteScene extends Phaser.Scene {
       });
     }
 
+    playSfx(this, 'jingle');
     fadeIn(this);
   }
 }

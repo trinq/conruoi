@@ -28,4 +28,8 @@ document.fonts
     const game = new Phaser.Game(config);
     // Handy for debugging and browser-driven checks during development.
     if (import.meta.env.DEV) window.__game = game;
+    // M toggles sound anywhere in the game.
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyM' && !e.repeat) game.sound.mute = !game.sound.mute;
+    });
   });
