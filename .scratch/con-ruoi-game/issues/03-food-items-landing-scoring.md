@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] At least 3 food types rendered as pixel art sprites on table surfaces (Phở, Bún, Cơm)
-- [ ] Table sprite(s) visible in the scene as surfaces for food
-- [ ] Clicking a food item causes the fly to move toward and land on it
-- [ ] While landed, an eating timer/progress is visible (animation or indicator)
-- [ ] Points awarded after eating completes: different values per food type
-- [ ] Score HUD displays current score and target score for the level
-- [ ] Fly can take off from food (via WASD) to cancel eating early
+- [x] At least 3 food types rendered as pixel art sprites on table surfaces (Phở, Bún, Cơm)
+- [x] Table sprite(s) visible in the scene as surfaces for food
+- [x] Clicking a food item causes the fly to move toward and land on it
+- [x] While landed, an eating timer/progress is visible (animation or indicator)
+- [x] Points awarded after eating completes: different values per food type
+- [x] Score HUD displays current score and target score for the level
+- [x] Fly can take off from food (via WASD) to cancel eating early

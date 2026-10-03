@@ -1,3 +1,5 @@
+import { createPixelTexture } from '../art/pixelArt.js';
+
 // Pixel art fly, drawn at runtime so there is no binary asset to manage.
 // Each frame is 16x16; '.' is transparent.
 const PALETTE = {
@@ -46,21 +48,6 @@ const WINGS_DOWN = [
   '................',
 ];
 
-export const FLY_SIZE = 16;
-const FRAMES = [WINGS_UP, WINGS_DOWN];
-
 export function createFlyTexture(scene, key = 'fly') {
-  const tex = scene.textures.createCanvas(key, FLY_SIZE * FRAMES.length, FLY_SIZE);
-  const ctx = tex.getContext();
-  FRAMES.forEach((rows, f) => {
-    rows.forEach((row, y) => {
-      [...row].forEach((ch, x) => {
-        if (ch === '.') return;
-        ctx.fillStyle = PALETTE[ch];
-        ctx.fillRect(f * FLY_SIZE + x, y, 1, 1);
-      });
-    });
-    tex.add(f, 0, f * FLY_SIZE, 0, FLY_SIZE, FLY_SIZE);
-  });
-  tex.refresh();
+  createPixelTexture(scene, key, [WINGS_UP, WINGS_DOWN], PALETTE);
 }
