@@ -94,9 +94,12 @@ export class App {
         this.ui.setScore(score);
         this.ui.popup(new THREE.Vector3(food.x, food.surfaceHeight + 0.9, food.z), COPY.scorePopup(food.info));
       })
-      .on('slap', () => {
-        this.gameAudio.slap();
-        this.stage.shake(140, 0.12);
+      .on('swing', (weapon) => this.gameAudio.swing(weapon))
+      .on('slap', (x, z, weapon) => {
+        this.gameAudio.slap(weapon);
+        // A fan lands lighter than a palm.
+        if (weapon === 'fan') this.stage.shake(110, 0.07);
+        else this.stage.shake(140, 0.12);
       })
       .on('hit', () => {
         this.gameAudio.hurt();

@@ -24,7 +24,7 @@ export const COPY = {
   howTo: [
     ['keys', 'W A S D hoặc ↑ ↓ ← →', 'Bay quanh quán'],
     ['bowl', 'Click vào món ăn', 'Đậu xuống ăn, no thêm điểm. Tô to thì nhiều điểm nhưng phải ngồi lâu'],
-    ['zone', 'Thấy vùng đỏ', 'Tay (hoặc vợt) sắp đập xuống đó, bay đi ngay!'],
+    ['zone', 'Thấy vùng đỏ', 'Tay, quạt hay vợt sắp đập xuống đó, bay đi ngay!'],
     ['key-m', 'Phím M', 'Tắt / bật tiếng'],
   ],
   back: '‹ Quay lại',

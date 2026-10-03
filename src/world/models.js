@@ -822,7 +822,7 @@ export function person(rand, archetype = pickArchetype(rand)) {
   chopsticks.position.set(0, -0.48, 0.15);
   rightArm.add(chopsticks);
 
-  g.userData = { head, leftArm, rightArm, skin, shirt: sleeve, archetype };
+  g.userData = { head, leftArm, rightArm, chopsticks, skin, shirt: sleeve, archetype };
   return g;
 }
 
@@ -844,6 +844,58 @@ export function slapHand(skin, shirt) {
   cuff.position.set(0, 0.02, -0.26);
   g.add(cuff);
   g.scale.setScalar(1.35);
+  return g;
+}
+
+// Quạt nan: a round fan of woven bamboo strips with a dyed rim and a
+// bamboo handle, lying flat with the blade centred on the origin and the
+// handle toward -z. The blade hangs from `userData.pivot`, placed at the
+// grip, so the fan can be cocked back and swung down from the hand.
+export function nanFan() {
+  const g = new THREE.Group();
+  const pivot = new THREE.Group();
+  const R = 0.52;
+  const grip = R * 0.9 + 0.38;
+  pivot.position.z = -grip;
+  g.add(pivot);
+  const blade = new THREE.Group();
+  // A touch of glow keeps the weave readable when the fan is cocked back
+  // and players see its shaded striking face.
+  const bamboo = { emissive: '#6b5020', emissiveIntensity: 0.35 };
+  const disc = mesh(new THREE.CylinderGeometry(R, R, 0.025, 16), mat('#e2c27e', bamboo));
+  disc.scale.z = 0.9;
+  blade.add(disc);
+  // Woven strips both ways on both faces, giving the lattice of a nan weave.
+  const strip = mat('#b88d48', bamboo);
+  for (let i = -4; i <= 4; i++) {
+    const c = (i / 4.5) * R;
+    const len = 2 * Math.sqrt(R * R - c * c) * 0.96;
+    for (const side of [-1, 1]) {
+      const across = mesh(new THREE.BoxGeometry(len, 0.012, 0.045), strip, { cast: false });
+      across.position.set(0, side * 0.016, c * 0.9);
+      blade.add(across);
+      const along = mesh(new THREE.BoxGeometry(0.045, 0.012, len * 0.9), strip, { cast: false });
+      along.position.set(c, side * 0.02, 0);
+      blade.add(along);
+    }
+  }
+  const rim = mesh(new THREE.TorusGeometry(R, 0.03, 4, 18), mat('#a3322a'));
+  rim.rotation.x = Math.PI / 2;
+  rim.scale.y = 0.9;
+  blade.add(rim);
+  const handle = mesh(new THREE.CylinderGeometry(0.028, 0.034, 0.5, 6), mat('#8a6a3a'));
+  handle.rotation.x = Math.PI / 2;
+  handle.position.z = -grip + 0.17;
+  blade.add(handle);
+  // The spine of the handle runs on up through the blade.
+  const spine = mesh(new THREE.BoxGeometry(0.04, 0.02, R * 1.5), mat('#9a7840'), { cast: false });
+  spine.position.set(0, 0.025, -R * 0.15);
+  blade.add(spine);
+  const merged = bakeStatic(blade);
+  merged.position.z = grip;
+  pivot.add(merged);
+
+  g.userData.pivot = pivot;
   return g;
 }
 

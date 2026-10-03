@@ -1,14 +1,25 @@
 import * as THREE from 'three';
-import { person, slapHand, pickArchetype } from '../world/models.js';
+import { person, slapHand, nanFan, pickArchetype } from '../world/models.js';
 import { textTexture } from '../world/lowpoly.js';
 import { Emitter } from './Emitter.js';
 import { SLAP_RADIUS } from './slapZone.js';
 
 const HAND_HOVER = 1.5; // m above the target while winding up
-const DROP_MS = 90;
+const DROP_MS = 90; // keep in step with FAN_HIT_S in audio/synth.js
 const REST_MS = 350;
 const RETRACT_MS = 250;
 const SHOULDER = new THREE.Vector3(0.3, 1.1, 0.1);
+const GUST_MS = 350;
+
+// How each weapon looks on the way down. The warning zone, timing and hit
+// rule are the same for every weapon; only the model and the pose change.
+// - cock: how far (radians) the weapon is tipped back at the top of the
+//   wind-up; the strike swings it flat onto the table.
+// - wave: how much it fans back and forth while hovering.
+const POSES = {
+  hand: { cock: 0, wave: 0 },
+  fan: { cock: 1.3, wave: 0.35 },
+};
 
 let alertTexture = null;
 
@@ -16,7 +27,8 @@ let alertTexture = null;
 // they wind up (warning zone + hand raised over the fly's position) and then
 // slap down on that spot.
 //
-// States: idle -> windup -> slap -> idle. Emits 'slap' (x, z) on impact.
+// States: idle -> windup -> slap -> idle. Emits 'swing' (weapon) as the
+// strike starts coming down and 'slap' (x, z, weapon) on impact.
 export class Npc {
   // `weapon` is 'hand', 'fan' or 'swatter'.
   constructor({ x, z }, danger, { weapon, south = false, tables, rand, getFly, surfaceAt, canAttack }) {
@@ -45,9 +57,33 @@ export class Npc {
     }
     this.model.rotation.y = Math.atan2(best.x - x, best.z - z);
 
-    const { skin, shirt } = this.model.userData;
-    this.hand = slapHand(skin, shirt);
+    // `hand` is whatever comes down on the table: a palm or a nan fan.
+    const { skin, shirt, rightArm, chopsticks } = this.model.userData;
+    const fan = weapon === 'fan';
+    this.pose = POSES[fan ? 'fan' : 'hand'];
+    this.hand = fan ? nanFan() : slapHand(skin, shirt);
     this.hand.visible = false;
+    this.pivot = this.hand.userData.pivot ?? null;
+    this.cock = 0;
+    if (fan) {
+      // Between strikes a fan diner fans themself with a smaller copy, so
+      // players can see who is armed.
+      chopsticks.visible = false;
+      this.heldFan = nanFan();
+      this.heldFan.scale.setScalar(0.55);
+      // Handle down the arm, blade upright with its face toward the head.
+      this.heldFan.rotation.set(Math.PI / 2, Math.PI / 2, 0, 'YXZ');
+      // Grip in the hand, blade beyond it.
+      this.heldFan.position.set(0, -0.44 + this.heldFan.userData.pivot.position.z * 0.55, 0.04);
+      rightArm.add(this.heldFan);
+      // A ring of air puffs out from under the fan when it lands.
+      this.gust = new THREE.Mesh(
+        new THREE.RingGeometry(0.55, 0.7, 28),
+        new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false }),
+      );
+      this.gust.rotation.x = -Math.PI / 2;
+      this.gust.visible = false;
+    }
 
     alertTexture ??= textTexture('!', { width: 128, height: 128, font: '110px "Paytone One", sans-serif', color: '#ff3b30' });
     this.alert = new THREE.Sprite(new THREE.SpriteMaterial({ map: alertTexture, depthTest: false }));
@@ -70,7 +106,7 @@ export class Npc {
     }
     this.zone.visible = false;
 
-    this.objects = [this.model, this.hand, this.alert, this.zone];
+    this.objects = [this.model, this.hand, this.alert, this.zone, ...(this.gust ? [this.gust] : [])];
   }
 
   nextCooldown() {
@@ -100,6 +136,7 @@ export class Npc {
         this.state = 'slap';
         this.elapsed = 0;
         this.alert.visible = false;
+        this.events.emit('swing', this.weapon);
       }
     } else if (this.state === 'slap') {
       this.elapsed += dtMs;
@@ -107,10 +144,16 @@ export class Npc {
     }
   }
 
-  // Eating with chopsticks between slaps.
+  // Eating with chopsticks between slaps, or fanning in the heat.
   animateIdle(timeMs) {
     const { head, rightArm } = this.model.userData;
     const t = timeMs * 0.004 + this.phase;
+    if (this.heldFan) {
+      rightArm.rotation.x = -2.2 + Math.sin(t * 3) * 0.12;
+      rightArm.rotation.z = 0.3 + Math.sin(t * 3) * 0.3;
+      head.rotation.x = -0.05;
+      return;
+    }
     rightArm.rotation.x = -1.25 + Math.sin(t) * 0.35;
     head.rotation.x = Math.max(0, Math.sin(t)) * 0.15;
   }
@@ -120,8 +163,9 @@ export class Npc {
     this.elapsed = 0;
     // Lock onto where the fly is right now; the player has the wind-up to escape.
     this.target = { x: fly.x, z: fly.z, y: this.surfaceAt(fly.x, fly.z).height };
-    this.model.userData.rightArm.rotation.x = -2.9;
+    this.model.userData.rightArm.rotation.set(-2.9, 0, 0);
     this.model.userData.head.rotation.x = -0.15;
+    if (this.heldFan) this.heldFan.visible = false;
     this.alert.visible = true;
     this.zone.visible = true;
     this.zone.position.set(this.target.x, this.target.y + 0.02, this.target.z);
@@ -146,6 +190,13 @@ export class Npc {
       THREE.MathUtils.lerp(this.handFrom.y, y + HAND_HOVER + rise, travel),
       THREE.MathUtils.lerp(this.handFrom.z, z, travel),
     );
+    if (this.pivot) {
+      // Fan it while lining up, then cock it right back before the strike.
+      const { cock, wave } = this.pose;
+      const fanning = Math.sin(timeMs * 0.025) * wave * (1 - rise / 0.35);
+      this.cock = cock * (0.45 * travel + 0.55 * (rise / 0.35)) + fanning;
+      this.pivot.rotation.x = -this.cock;
+    }
   }
 
   updateSlap() {
@@ -154,14 +205,22 @@ export class Npc {
     if (t < DROP_MS) {
       const p = (t / DROP_MS) ** 2;
       this.hand.position.y = THREE.MathUtils.lerp(y + HAND_HOVER + 0.35, y + 0.08, p);
+      // The fan swings flat as it comes down.
+      if (this.pivot) this.pivot.rotation.x = -this.cock * (1 - Math.sqrt(t / DROP_MS));
       return;
     }
     if (!this.landed) {
       this.landed = true;
       this.hand.position.y = y + 0.08;
+      if (this.pivot) this.pivot.rotation.x = 0;
       this.zone.visible = false;
-      this.events.emit('slap', x, z);
+      if (this.gust) {
+        this.gust.position.set(x, y + 0.04, z);
+        this.gust.visible = true;
+      }
+      this.events.emit('slap', x, z, this.weapon);
     }
+    this.updateGust(t - DROP_MS);
     if (t < DROP_MS + REST_MS) return;
     const p = Math.min(1, (t - DROP_MS - REST_MS) / RETRACT_MS);
     const home = this.shoulderWorld();
@@ -172,10 +231,22 @@ export class Npc {
     );
     if (p >= 1) {
       this.hand.visible = false;
+      if (this.heldFan) this.heldFan.visible = true;
       this.landed = false;
       this.state = 'idle';
       this.cooldown = this.nextCooldown();
     }
+  }
+
+  updateGust(sinceImpactMs) {
+    if (!this.gust?.visible) return;
+    const g = sinceImpactMs / GUST_MS;
+    if (g >= 1) {
+      this.gust.visible = false;
+      return;
+    }
+    this.gust.scale.setScalar(0.7 + g * 1.1);
+    this.gust.material.opacity = 0.7 * (1 - g);
   }
 
   // Freeze the diner when the round ends.
@@ -183,5 +254,6 @@ export class Npc {
     this.state = 'stopped';
     this.zone.visible = false;
     this.alert.visible = false;
+    if (this.gust) this.gust.visible = false;
   }
 }

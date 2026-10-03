@@ -151,3 +151,39 @@ test('level 2 is Huế and serves bánh bèo, cơm hến and bún bò Huế', as
   await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[1].targetScore}`);
   await expectNoErrors(errors);
 });
+
+// Level 3 mixes bare hands and nan fans; both must warn and hit the same way.
+for (const weapon of ['hand', 'fan']) {
+  test(`a ${weapon} strike shows the warning zone, hits only inside it`, async ({ page }) => {
+    const errors = await openGame(page);
+    await goToLevel(page, 2);
+    // Only the diner under test strikes, aimed at the fly; with `escape`
+    // the fly darts out of the zone as soon as it appears.
+    const strike = (escape) =>
+      page.evaluate(
+        ({ weapon, escape }) => {
+          const r = window.__app.round;
+          const npc = r.npcs.find((n) => n.weapon === weapon);
+          for (const n of r.npcs) n.cooldown = Infinity;
+          r.fly.invincibleUntil = 0;
+          r.fly.x = npc.x + 0.3;
+          r.fly.z = npc.z + 1.2;
+          npc.startWindup(r.fly);
+          if (escape) r.fly.x += npc.x > 0 ? -2.5 : 2.5;
+          return npc.zone.visible;
+        },
+        { weapon, escape },
+      );
+    const idle = () => page.evaluate((weapon) => window.__app.round.npcs.find((n) => n.weapon === weapon).state === 'idle', weapon);
+
+    expect(await strike(true)).toBe(true);
+    await expect.poll(idle).toBe(false);
+    await expect.poll(idle, { timeout: 10_000 }).toBe(true);
+    expect(await fullHearts(page)).toBe(3);
+
+    expect(await strike(false)).toBe(true);
+    await expect.poll(() => fullHearts(page), { timeout: 10_000 }).toBe(2);
+    await expect(page.locator('.popup.hit')).toHaveText(new RegExp(COPY.hit.join('|')));
+    await expectNoErrors(errors);
+  });
+}

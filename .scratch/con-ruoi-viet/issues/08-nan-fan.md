@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Fan model, wind-up pose and strike animation
-- [ ] Identical warning zone and hit rules to the hand
-- [ ] Distinct impact sound
-- [ ] Weapon chosen from the level's weapon mix
+- [x] Fan model, wind-up pose and strike animation
+- [x] Identical warning zone and hit rules to the hand
+- [x] Distinct impact sound
+- [x] Weapon chosen from the level's weapon mix
