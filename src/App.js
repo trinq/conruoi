@@ -97,8 +97,9 @@ export class App {
       .on('swing', (weapon) => this.gameAudio.swing(weapon))
       .on('slap', (x, z, weapon) => {
         this.gameAudio.slap(weapon);
-        // A fan lands lighter than a palm.
+        // A fan lands lighter than a palm; a swatter is light but snappy.
         if (weapon === 'fan') this.stage.shake(110, 0.07);
+        else if (weapon === 'swatter') this.stage.shake(90, 0.08);
         else this.stage.shake(140, 0.12);
       })
       .on('hit', () => {

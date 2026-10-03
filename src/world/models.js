@@ -1000,6 +1000,87 @@ export function nanFan() {
   return g;
 }
 
+// Plastic colours electric swatters come in at every market stall.
+export const SWATTER_COLOURS = ['#f2b705', '#2f7fd6', '#e8622a', '#3fae5a'];
+
+// Vợt muỗi điện: an oval plastic frame round a silver wire grid, a neck
+// and a chunky handle with the battery box, a red button and an LED. Lies
+// flat like the nan fan: head centred on the origin, handle toward -z, the
+// head hanging from `userData.pivot` at the grip. The grid has its own
+// material (`userData.grid`) so it can glow while the swatter is live.
+export function swatter(colour = SWATTER_COLOURS[0]) {
+  const g = new THREE.Group();
+  const pivot = new THREE.Group();
+  const RX = 0.36;
+  const RZ = 0.46;
+  const grip = RZ + 0.5;
+  pivot.position.z = -grip;
+  g.add(pivot);
+
+  const head = new THREE.Group();
+  const plastic = mat(colour, { roughness: 0.45 });
+  // A unit ring stretched into the oval; the tube is about 6 cm wide.
+  const frame = mesh(new THREE.TorusGeometry(1, 0.16, 4, 22), plastic);
+  frame.rotation.x = Math.PI / 2;
+  frame.scale.set(RX, RZ, 0.4);
+  head.add(frame);
+  // Inside the frame: a fine outer mesh on each face and thicker live
+  // wires between them.
+  const gridMat = new THREE.MeshStandardMaterial({
+    color: '#cfd6dc',
+    roughness: 0.3,
+    metalness: 0.6,
+    flatShading: true,
+    emissive: '#7fd4ff',
+    emissiveIntensity: 0,
+  });
+  const span = (c, r, R) => 2 * R * Math.sqrt(Math.max(0, 1 - (c / r) ** 2)) * 0.94;
+  for (let c = -RX + 0.05; c < RX - 0.02; c += 0.06) {
+    const len = span(c, RX, RZ);
+    for (const y of [-0.018, 0.018]) {
+      const wire = mesh(new THREE.BoxGeometry(0.008, 0.006, len), gridMat, { cast: false });
+      wire.position.set(c, y, 0);
+      head.add(wire);
+    }
+  }
+  for (let c = -RZ + 0.05; c < RZ - 0.02; c += 0.06) {
+    const len = span(c, RZ, RX);
+    for (const y of [-0.018, 0.018]) {
+      const wire = mesh(new THREE.BoxGeometry(len, 0.006, 0.008), gridMat, { cast: false });
+      wire.position.set(0, y, c);
+      head.add(wire);
+    }
+  }
+  for (let c = -RX + 0.11; c < RX - 0.08; c += 0.12) {
+    const wire = mesh(new THREE.BoxGeometry(0.014, 0.014, span(c, RX, RZ)), gridMat, { cast: false });
+    wire.position.x = c;
+    head.add(wire);
+  }
+  const neck = mesh(new THREE.BoxGeometry(0.12, 0.06, 0.2), plastic);
+  neck.position.z = -RZ - 0.06;
+  head.add(neck);
+  const handle = mesh(new THREE.BoxGeometry(0.1, 0.075, 0.46), plastic);
+  handle.position.z = -RZ - 0.38;
+  head.add(handle);
+  const battery = mesh(new THREE.BoxGeometry(0.12, 0.09, 0.2), mat('#e9e6dc', { roughness: 0.5 }));
+  battery.position.set(0, -0.012, -RZ - 0.5);
+  head.add(battery);
+  const button = mesh(new THREE.BoxGeometry(0.045, 0.03, 0.06), mat('#d62a1e'), { cast: false });
+  button.position.set(0, 0.045, -RZ - 0.24);
+  head.add(button);
+  const led = mesh(new THREE.BoxGeometry(0.025, 0.02, 0.025), mat('#ff3b30', { emissive: '#ff2a1a', emissiveIntensity: 1.2 }), { cast: false });
+  led.position.set(0, 0.045, -RZ - 0.13);
+  head.add(led);
+
+  const merged = bakeStatic(head);
+  merged.position.z = grip;
+  pivot.add(merged);
+
+  g.userData.pivot = pivot;
+  g.userData.grid = gridMat;
+  return g;
+}
+
 // Tiny nón lá for the fly mascot; origin at the brim's centre.
 export function flyHat() {
   const g = new THREE.Group();

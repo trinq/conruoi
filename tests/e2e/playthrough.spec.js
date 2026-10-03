@@ -154,11 +154,13 @@ test('level 2 is Huế and serves bánh bèo, cơm hến and bún bò Huế', as
   await expectNoErrors(errors);
 });
 
-// Level 3 mixes bare hands and nan fans; both must warn and hit the same way.
-for (const weapon of ['hand', 'fan']) {
+// Every weapon must warn and hit the same way. Hands and nan fans are
+// tried on level 3, electric swatters on level 4 where they first appear.
+const WEAPON_LEVEL = { hand: 2, fan: 2, swatter: 3 };
+for (const [weapon, levelIndex] of Object.entries(WEAPON_LEVEL)) {
   test(`a ${weapon} strike shows the warning zone, hits only inside it`, async ({ page }) => {
     const errors = await openGame(page);
-    await goToLevel(page, 2);
+    await goToLevel(page, levelIndex);
     // Only the diner under test strikes, aimed at the fly; with `escape`
     // the fly darts out of the zone as soon as it appears.
     const strike = (escape) =>
