@@ -40,7 +40,7 @@ export class MenuScene extends Phaser.Scene {
       .text(
         width / 2,
         300,
-        'WASD: bay  ·  Click món ăn: đậu xuống ăn\nThấy vùng đỏ thì bay đi ngay!  ·  M: tắt/bật tiếng',
+        'WASD / mũi tên: bay  ·  Click món ăn: đậu xuống ăn\nThấy vùng đỏ thì bay đi ngay!  ·  M: tắt/bật tiếng',
         { ...TEXT_STYLE, fontSize: '26px', align: 'center', lineSpacing: 8 },
       )
       .setOrigin(0.5);

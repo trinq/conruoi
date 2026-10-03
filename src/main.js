@@ -16,6 +16,8 @@ const config = {
   height: GAME_HEIGHT,
   backgroundColor: '#1d1410',
   pixelArt: true,
+  // Scale the 960x540 canvas to fit the window, keeping its aspect ratio.
+  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   scene: [BootScene, MenuScene, GameScene, LevelCompleteScene, GameOverScene],
 };
 
