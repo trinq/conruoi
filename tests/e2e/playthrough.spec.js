@@ -3,20 +3,45 @@ import { COPY, levelName } from '../../src/copy.js';
 import { LEVELS } from '../../src/levels.js';
 import { openGame, waitForMode, startGame, hud, board, fullHearts, clickDish, strikeFly, finishLevel, expectNoErrors } from './game.js';
 
-test('home screen starts level 1 with Enter', async ({ page }) => {
+test('home screen shows the shop sign and menu, Enter starts level 1', async ({ page }) => {
   const errors = await openGame(page);
-  await expect(board(page)).toContainText(COPY.title);
+  await expect(page.locator('.title-sign')).toContainText(COPY.title);
+  await expect(page.locator('.title-sign')).toContainText(COPY.slogan);
+  await expect(board(page)).toContainText(COPY.menuTitle);
+  await expect(board(page)).toContainText(COPY.menu.play[0]);
   await startGame(page);
   await expect(hud(page)).toContainText(levelName(0));
+  await expect(page.locator('.intro')).toContainText(COPY.intro(0));
   expect(await fullHearts(page)).toBe(3);
   await expectNoErrors(errors);
 });
 
-test('clicking a dish lands the fly and eating scores its points', async ({ page }) => {
+test('how-to-play opens from the menu and goes back', async ({ page }) => {
+  const errors = await openGame(page);
+  await page.getByRole('button', { name: COPY.menu.howTo[0] }).click();
+  await expect(board(page)).toContainText(COPY.howToTitle);
+  await page.getByRole('button', { name: COPY.back }).click();
+  await expect(board(page)).toContainText(COPY.menuTitle);
+  await expectNoErrors(errors);
+});
+
+test('the menu sound item and the M key toggle the same setting', async ({ page }) => {
+  const errors = await openGame(page);
+  const sound = () => page.locator('.chalk-item', { hasText: COPY.menu.sound(true)[0] });
+  await expect(sound()).toContainText(COPY.menu.sound(true)[1]);
+  await sound().click();
+  await expect(sound()).toContainText(COPY.menu.sound(false)[1]);
+  await expect(page.locator('.mute')).toHaveText(COPY.muted);
+  await page.keyboard.press('m');
+  await expect(sound()).toContainText(COPY.menu.sound(true)[1]);
+  await expectNoErrors(errors);
+});
+
+test('clicking a dish lands the fly and eating fills it up', async ({ page }) => {
   const errors = await openGame(page);
   await startGame(page);
   const dish = await clickDish(page, 'low');
-  await expect(hud(page)).toContainText(`${dish.points} / ${LEVELS[0].targetScore}`, { timeout: 15_000 });
+  await expect(hud(page)).toContainText(`${COPY.hud.score}:${dish.points}/${LEVELS[0].targetScore}`, { timeout: 15_000 });
   await expect(page.locator('.popup')).toContainText(dish.name);
   await expectNoErrors(errors);
 });
@@ -26,8 +51,10 @@ test('a strike costs a life and losing all lives ends the game', async ({ page }
   await startGame(page);
   await strikeFly(page);
   await expect.poll(() => fullHearts(page)).toBe(2);
+  await expect(page.locator('.popup.hit')).toHaveText(new RegExp(COPY.hit.join('|')));
   await strikeFly(page);
   await strikeFly(page);
+  await expect(page.locator('.banner')).toHaveText(COPY.outOfLives);
   await waitForMode(page, 'result');
   await expect(board(page)).toContainText(COPY.gameOver);
   await board(page).getByRole('button', { name: COPY.retry }).click();
@@ -41,6 +68,7 @@ test('reaching the target moves on to the next level', async ({ page }) => {
   const errors = await openGame(page);
   await startGame(page);
   await finishLevel(page);
+  await expect(page.locator('.banner')).toHaveText(COPY.targetReached);
   await waitForMode(page, 'result');
   await expect(board(page)).toContainText(COPY.levelDone(0));
   await page.keyboard.press('Enter');
@@ -59,6 +87,9 @@ test('finishing all five levels shows the victory board', async ({ page }) => {
     if (i < LEVELS.length - 1) await page.keyboard.press('Enter');
   }
   await expect(board(page)).toContainText(COPY.victory);
+  await board(page).getByRole('button', { name: COPY.home }).click();
+  await waitForMode(page, 'menu');
+  await expect(page.locator('.title-sign')).toContainText(COPY.title);
   await expectNoErrors(errors);
 });
 

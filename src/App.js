@@ -36,10 +36,7 @@ export class App {
       canvas.style.cursor = over ? 'pointer' : '';
     });
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'KeyM' && !e.repeat) {
-        this.audio.muted = !this.audio.muted;
-        this.ui.setMuted(this.audio.muted);
-      }
+      if (e.code === 'KeyM' && !e.repeat) this.toggleSound();
     });
     this.audio.onUnlock(() => this.ui.hideAudioHint());
 
@@ -56,12 +53,22 @@ export class App {
     this.env.setRegion(level.region, level.timeOfDay);
   }
 
+  // M key and the menu's sound item share this.
+  toggleSound() {
+    this.audio.muted = !this.audio.muted;
+    this.ui.setMuted(this.audio.muted);
+  }
+
   showMenu() {
     this.mode = 'menu';
     this.gameAudio.stop();
     this.loadLevel(0, MAX_LIVES);
     this.ui.hideHud();
-    this.ui.showMenu({ onPlay: () => this.go(newGame()), audioLocked: this.audio.locked });
+    this.ui.showMenu({
+      onPlay: () => this.go(newGame()),
+      onToggleSound: () => this.toggleSound(),
+      audioLocked: () => this.audio.locked,
+    });
   }
 
   go(data) {
@@ -77,6 +84,7 @@ export class App {
     this.ui.showHud(levelIndex, this.round.level);
     this.ui.setScore(0);
     this.ui.setLives(lives);
+    this.ui.showIntro(levelIndex);
 
     const round = this.round;
     round.events
@@ -89,7 +97,11 @@ export class App {
         this.gameAudio.slap();
         this.stage.shake(140, 0.12);
       })
-      .on('hit', () => this.gameAudio.hurt())
+      .on('hit', () => {
+        this.gameAudio.hurt();
+        const fly = round.fly;
+        this.ui.hitReaction(new THREE.Vector3(fly.x, fly.altitude + 0.5, fly.z));
+      })
       .on('lives', (lives) => this.ui.setLives(lives, { lost: true }))
       .on('won', () =>
         this.endRound(COPY.targetReached, () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),

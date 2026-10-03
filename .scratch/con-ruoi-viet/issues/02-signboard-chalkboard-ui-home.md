@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] Home screen: sign title, slogan, chalkboard menu; Enter starts level 1
-- [ ] "Cách chơi" opens an illustrated chalkboard guide (WASD/mũi tên, click món, vùng đỏ) and closes back to the menu
-- [ ] "Âm thanh: Bật/Tắt" toggles sound and stays in sync with the M key
-- [ ] Level intro card "Màn N: … – Ăn nhanh kẻo bị đập!"
-- [ ] HUD shows "No: x/y" on a chalkboard plate and 3 hearts
-- [ ] Banners: "No căng bụng!" on target, "Á đù!"/"Ui da!" on hit, "Bẹp dí!" on last life
-- [ ] Game-over chalkboard: "Ruồi đã lên đường... Điểm: N", buttons "Bay lại phát nữa" and "Về quán"
-- [ ] Fonts bundled and render Vietnamese diacritics correctly; e2e updated for the new strings
+- [x] Home screen: sign title, slogan, chalkboard menu; Enter starts level 1
+- [x] "Cách chơi" opens an illustrated chalkboard guide (WASD/mũi tên, click món, vùng đỏ) and closes back to the menu
+- [x] "Âm thanh: Bật/Tắt" toggles sound and stays in sync with the M key
+- [x] Level intro card "Màn N: … – Ăn nhanh kẻo bị đập!"
+- [x] HUD shows "No: x/y" on a chalkboard plate and 3 hearts
+- [x] Banners: "No căng bụng!" on target, "Á đù!"/"Ui da!" on hit, "Bẹp dí!" on last life
+- [x] Game-over chalkboard: "Ruồi đã lên đường... Điểm: N", buttons "Bay lại phát nữa" and "Về quán"
+- [x] Fonts bundled and render Vietnamese diacritics correctly; e2e updated for the new strings

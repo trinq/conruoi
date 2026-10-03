@@ -55,7 +55,7 @@ export function jitter(geometry, amount, rand) {
 }
 
 // Canvas-backed texture for signs and labels.
-export function textTexture(text, { width = 512, height = 128, font = '700 72px "Baloo 2", sans-serif', color = '#fff', background = null } = {}) {
+export function textTexture(text, { width = 512, height = 128, font = '72px "Paytone One", sans-serif', color = '#fff', background = null } = {}) {
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;

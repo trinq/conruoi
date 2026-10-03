@@ -140,7 +140,7 @@ export function stall(name) {
       map: textTexture(name, {
         width: 768,
         height: 160,
-        font: '800 64px "Baloo 2", sans-serif',
+        font: '60px "Paytone One", sans-serif',
         background: '#7d4f2b',
         color: '#ffe9b0',
       }),

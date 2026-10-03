@@ -49,7 +49,7 @@ export class Npc {
     this.hand = slapHand(skin, shirt);
     this.hand.visible = false;
 
-    alertTexture ??= textTexture('!', { width: 128, height: 128, font: '800 110px "Baloo 2", sans-serif', color: '#ff3b30' });
+    alertTexture ??= textTexture('!', { width: 128, height: 128, font: '110px "Paytone One", sans-serif', color: '#ff3b30' });
     this.alert = new THREE.Sprite(new THREE.SpriteMaterial({ map: alertTexture, depthTest: false }));
     this.alert.scale.setScalar(0.7);
     this.alert.position.set(x, 2.15, z);
