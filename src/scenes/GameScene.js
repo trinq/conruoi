@@ -9,6 +9,7 @@ import { LEVELS } from '../levels.js';
 import { drawFloor } from '../ui/floor.js';
 import { fadeIn, fadeTo } from '../ui/transition.js';
 import { MAX_LIVES, newGame } from '../gameState.js';
+import { GameAudio } from '../audio/GameAudio.js';
 
 const END_DELAY_MS = 900; // let the final hit / last bite play out before fading
 
@@ -61,6 +62,7 @@ export class GameScene extends Phaser.Scene {
       return npc;
     });
 
+    this.audio = new GameAudio(this);
     this.hud = new Hud(this);
     this.hud.setLevel(`Màn ${levelIndex + 1}/${LEVELS.length} · ${this.level.name}`);
     this.hud.setScore(this.score, this.level.targetScore);
@@ -71,9 +73,11 @@ export class GameScene extends Phaser.Scene {
 
   onSlap(x, y) {
     if (this.over) return;
+    this.audio.slap();
     const fly = this.fly;
     if (!inSlapZone(fly.x, fly.y, x, y) || fly.isInvincible(this.time.now)) return;
     fly.hit(x, y);
+    this.audio.hurt();
     this.lives -= 1;
     this.hud.setLives(this.lives, MAX_LIVES);
     if (this.lives <= 0) {
@@ -104,6 +108,7 @@ export class GameScene extends Phaser.Scene {
   endRound(message, nextScene, data) {
     this.over = true;
     for (const npc of this.npcs) npc.stop();
+    this.audio.stopLoops();
     this.hud.banner(message);
     this.time.delayedCall(END_DELAY_MS, () => fadeTo(this, nextScene, data));
   }
@@ -115,6 +120,7 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.over) return;
     this.fly.update(time, delta, (x, y) => this.surfaceAt(x, y));
+    this.audio.update(this.fly, delta / 1000);
     for (const npc of this.npcs) npc.update(time, delta);
   }
 }

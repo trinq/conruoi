@@ -40,7 +40,7 @@ export class MenuScene extends Phaser.Scene {
       .text(
         width / 2,
         300,
-        'WASD: bay  ·  Click món ăn: đậu xuống ăn\nThấy vùng đỏ thì bay đi ngay!',
+        'WASD: bay  ·  Click món ăn: đậu xuống ăn\nThấy vùng đỏ thì bay đi ngay!  ·  M: tắt/bật tiếng',
         { ...TEXT_STYLE, fontSize: '26px', align: 'center', lineSpacing: 8 },
       )
       .setOrigin(0.5);
@@ -48,6 +48,18 @@ export class MenuScene extends Phaser.Scene {
     addButton(this, width / 2, 410, 'Chơi', () => fadeTo(this, 'GameScene', newGame()), {
       key: 'ENTER',
     });
+
+    // Browsers block audio until the first click or key press.
+    if (this.sound.locked) {
+      const hint = this.add
+        .text(width / 2, height - 40, 'Click hoặc bấm phím bất kỳ để bật âm thanh', {
+          ...TEXT_STYLE,
+          fontSize: '22px',
+          color: '#d8c6a5',
+        })
+        .setOrigin(0.5);
+      this.sound.once('unlocked', () => hint.destroy());
+    }
 
     fadeIn(this);
   }

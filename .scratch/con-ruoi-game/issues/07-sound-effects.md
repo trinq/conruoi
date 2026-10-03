@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] Fly buzzing loop plays while the fly is moving (fades when stationary or landed)
-- [ ] Eating/munching sound plays when the fly is consuming food
-- [ ] Slap impact sound plays when NPC hand strikes
-- [ ] Life lost negative sting sound plays when fly is hit
-- [ ] Level complete jingle plays on LevelCompleteScene
-- [ ] Sounds are loaded in BootScene and do not block game startup
-- [ ] Audio does not overlap or stack unpleasantly
-- [ ] Game handles browsers that block autoplay gracefully (user interaction to enable audio)
+- [x] Fly buzzing loop plays while the fly is moving (fades when stationary or landed)
+- [x] Eating/munching sound plays when the fly is consuming food
+- [x] Slap impact sound plays when NPC hand strikes
+- [x] Life lost negative sting sound plays when fly is hit
+- [x] Level complete jingle plays on LevelCompleteScene
+- [x] Sounds are loaded in BootScene and do not block game startup
+- [x] Audio does not overlap or stack unpleasantly
+- [x] Game handles browsers that block autoplay gracefully (user interaction to enable audio)

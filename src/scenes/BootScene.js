@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { createFlyTexture } from '../fly/flyTexture.js';
 import { createFoodTextures } from '../food/foodTypes.js';
 import { createDangerTextures } from '../danger/npcTextures.js';
+import { registerSounds } from '../audio/sounds.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -16,6 +17,7 @@ export class BootScene extends Phaser.Scene {
     createFlyTexture(this);
     createFoodTextures(this);
     createDangerTextures(this);
+    registerSounds(this);
     this.anims.create({
       key: 'fly-idle',
       frames: this.anims.generateFrameNumbers('fly', { frames: [0, 1] }),
