@@ -1,12 +1,19 @@
 name: Deploy to GitHub Pages
 
+# The site is the build of `main`, plus a preview of every open pull request
+# from this repo under /pr/<number>/, so a PR can be tried on a phone before
+# it is merged. A push to main or a PR push rebuilds the whole site; a closed
+# PR's preview goes away with the next deploy.
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 permissions:
   contents: read
+  pull-requests: read
   pages: write
   id-token: write
 
@@ -17,9 +24,14 @@ concurrency:
 
 jobs:
   build:
+    # Pull requests from forks get no preview (and no Pages access).
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -27,6 +39,29 @@ jobs:
       - run: npm ci
       - run: npm run check:levels
       - run: npm run build
+      # The build uses relative paths (base: './'), so it runs from any
+      # sub-path. A PR whose build fails is left out rather than blocking
+      # the deploy of main.
+      - name: Build previews of open pull requests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 50 \
+            --json number,headRefOid,isCrossRepository \
+            --jq '.[] | select(.isCrossRepository | not) | "\(.number) \(.headRefOid)"' |
+          while read -r number sha; do
+            echo "::group::PR #$number ($sha)"
+            dir="$RUNNER_TEMP/pr-$number"
+            if git fetch --quiet origin "pull/$number/head" &&
+              git worktree add --quiet --detach "$dir" "$sha" &&
+              (cd "$dir" && npm ci --no-audit --no-fund && npx vite build --outDir "$GITHUB_WORKSPACE/dist/pr/$number" --emptyOutDir); then
+              echo "Preview: pr/$number/"
+            else
+              echo "::warning::Preview of PR #$number did not build"
+              rm -rf "dist/pr/$number"
+            fi
+            echo "::endgroup::"
+          done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
