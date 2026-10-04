@@ -2,13 +2,13 @@ name: Deploy to GitHub Pages
 
 # The site is the build of `main`, plus a preview of every open pull request
 # from this repo under /pr/<number>/, so a PR can be tried on a phone before
-# it is merged. A push to main or a PR push rebuilds the whole site; a closed
-# PR's preview goes away with the next deploy.
+# it is merged. A push to main or to a claude/ branch rebuilds the whole site;
+# a closed PR's preview goes away with the next deploy. It runs on branch
+# pushes rather than pull_request events so the github-pages environment can
+# allow it with a plain branch rule (main and claude/*).
 on:
   push:
-    branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
+    branches: [main, 'claude/**']
   workflow_dispatch:
 
 permissions:
@@ -24,8 +24,6 @@ concurrency:
 
 jobs:
   build:
-    # Pull requests from forks get no preview (and no Pages access).
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +39,7 @@ jobs:
       - run: npm run build
       # The build uses relative paths (base: './'), so it runs from any
       # sub-path. A PR whose build fails is left out rather than blocking
-      # the deploy of main.
+      # the deploy of main; PRs from forks get no preview.
       - name: Build previews of open pull requests
         env:
           GH_TOKEN: ${{ github.token }}

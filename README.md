@@ -46,4 +46,4 @@ Code layout:
 - `src/copy.js`: every string the player reads
 - `src/levels.js`: level layouts and difficulty
 
-Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`). The same deploy also publishes a preview of every open pull request from this repo at `https://trinq.github.io/conruoi/pr/<number>/`, so a PR can be tried on a phone before it is merged; a closed PR's preview goes away with the next deploy. The spec is in `SPEC.md`, tickets are in `.scratch/con-ruoi-game/issues/`.
+Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`). Pushes to `claude/*` branches run the same deploy, which also publishes a preview of every open pull request from this repo at `https://trinq.github.io/conruoi/pr/<number>/`, so a PR can be tried on a phone before it is merged; a closed PR's preview goes away with the next deploy. The spec is in `SPEC.md`, tickets are in `.scratch/con-ruoi-game/issues/`.
