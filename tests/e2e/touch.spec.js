@@ -2,9 +2,11 @@
 // see playwright.config.js).
 import { test, expect } from '@playwright/test';
 import { COPY } from '../../src/copy.js';
-import { openGame, tapToStart, calmDiners, flyState, fingers, expectNoErrors, SLOW } from './game.js';
+import { LEVELS } from '../../src/levels.js';
+import { openGame, tapToStart, calmDiners, flyState, fingers, dishPoint, hud, expectNoErrors, SLOW } from './game.js';
 
 const joystick = (page) => page.locator('.joystick');
+const scoreText = (score) => `${COPY.hud.score}:${score}/${LEVELS[0].targetScore}`;
 
 test('dragging on the left shows the joystick and flies the fly; lifting the finger hides it', async ({ page }) => {
   const errors = await openGame(page);
@@ -29,5 +31,66 @@ test('dragging on the left shows the joystick and flies the fly; lifting the fin
   await touch.up(1);
   await expect(joystick(page)).toBeHidden();
   await page.waitForFunction(() => window.__app.round.fly.speed < 0.05, null, SLOW);
+  await expectNoErrors(errors);
+});
+
+test('tapping a dish, or just beside it, lands the fly and scores its points', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await calmDiners(page);
+
+  // Dishes on the right, away from the joystick side.
+  const first = await dishPoint(page, { tier: 'low', minX: 915 * 0.5 });
+  await page.touchscreen.tap(first.x, first.y);
+  await expect(hud(page)).toContainText(scoreText(first.points), SLOW);
+  await expect(page.locator('.popup')).toContainText(first.name);
+
+  const beside = await dishPoint(page, { minX: 915 * 0.5, beside: 32 });
+  expect(beside).not.toBeNull();
+  await page.touchscreen.tap(beside.x, beside.y);
+  await expect(hud(page)).toContainText(scoreText(first.points + beside.points), SLOW);
+  await expectNoErrors(errors);
+});
+
+test('flying with one finger while tapping a dish with another still lands on the dish', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await calmDiners(page);
+
+  const touch = await fingers(page);
+  await touch.down(1, 170, 290);
+  await touch.move(1, 140, 250);
+  await page.waitForFunction(() => window.__app.round.fly.speed > 1.5, null, SLOW);
+
+  // The thumb stays on the joystick while the other finger taps.
+  const dish = await dishPoint(page, { minX: 915 * 0.5 });
+  await touch.down(2, dish.x, dish.y);
+  await touch.up(2);
+  await expect(hud(page)).toContainText(scoreText(dish.points), SLOW);
+  await expect(joystick(page)).toBeVisible();
+
+  // Moving the thumb again takes off.
+  await touch.move(1, 110, 290);
+  await page.waitForFunction(() => window.__app.round.fly.state === 'flying' && window.__app.round.fly.speed > 1.5, null, SLOW);
+  await touch.up(1);
+  await expectNoErrors(errors);
+});
+
+test('a drag that starts on the right, even on a dish, neither flies nor lands the fly', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await calmDiners(page);
+
+  const dish = await dishPoint(page, { minX: 915 * 0.5 });
+  const touch = await fingers(page);
+  await touch.down(1, dish.x, dish.y);
+  await touch.move(1, dish.x + 80, dish.y);
+  await touch.up(1);
+  await expect(joystick(page)).toBeHidden();
+  const t0 = await page.evaluate(() => window.__app.round.time);
+  await page.waitForFunction((t) => window.__app.round.time > t + 600, t0, SLOW);
+  const fly = await flyState(page);
+  expect(fly.state).toBe('flying');
+  expect(fly.speed).toBeLessThan(0.05);
   await expectNoErrors(errors);
 });

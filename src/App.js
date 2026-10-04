@@ -6,6 +6,7 @@ import { moveDirection } from './game/direction.js';
 import { MoveKeys } from './input/moveKeys.js';
 import { InputMode } from './input/inputMode.js';
 import { TouchStick } from './input/touchStick.js';
+import { TouchTaps } from './input/touchTaps.js';
 import { AudioEngine } from './audio/AudioEngine.js';
 import { GameAudio } from './audio/GameAudio.js';
 import { UI } from './ui/ui.js';
@@ -16,6 +17,7 @@ import { readBest, saveBest } from './bestScore.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
+const TAP_REACH_PX = 44; // a touch tap this close to a dish still picks it
 
 // Game flow: menu → level → (level complete → next level | game over),
 // with the 3D scene always rendering behind the HTML boards.
@@ -38,11 +40,13 @@ export class App {
       { show: (x, y) => ui.showStick(x, y), move: (dx, dy) => ui.moveStick(dx, dy), hide: () => ui.hideStick() },
       { enabled: () => this.mode === 'play' },
     );
+    new TouchTaps(canvas, (e) => this.tap(e), { onStick: (id) => this.stick.owns(id) });
+    // Mouse (and pen) pick on press, as before; touch picks on a tap.
     canvas.addEventListener('pointerdown', (e) => {
-      if (this.stick.owns(e.pointerId)) return;
-      if (this.mode === 'play') this.round.click(this.stage.pointerNdc(e), this.stage.camera);
+      if (e.pointerType !== 'touch' && this.mode === 'play') this.round.click(this.stage.pointerNdc(e), this.stage.camera);
     });
     canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
       const over = this.mode === 'play' && this.round.pick(this.stage.pointerNdc(e), this.stage.camera);
       canvas.style.cursor = over ? 'pointer' : '';
     });
@@ -54,6 +58,16 @@ export class App {
     this.showMenu();
     this.last = performance.now();
     requestAnimationFrame((t) => this.frame(t));
+  }
+
+  // A touch tap goes down the click-to-land path, with a wider reach since a
+  // fingertip is bigger than the dishes look. A thumb resting on the joystick
+  // then lets the fly land until it moves again.
+  tap(e) {
+    if (this.mode !== 'play') return;
+    const r = this.stage.renderer.domElement.getBoundingClientRect();
+    const reach = this.input.touch ? { reachPx: TAP_REACH_PX, size: { width: r.width, height: r.height } } : {};
+    if (this.round.click(this.stage.pointerNdc(e), this.stage.camera, reach)) this.stick.hold();
   }
 
   loadLevel(levelIndex, lives) {

@@ -16,6 +16,7 @@ Built with [three.js](https://threejs.org). Every model (trees, stall, tables, d
 On a phone or touchscreen:
 
 - **Drag on the left side**: a joystick appears under your thumb; push further to fly faster
+- **Tap a dish** (or just beside it): fly to it, land and eat; works while the other thumb is on the joystick
 
 ## Development
 
@@ -36,7 +37,7 @@ Code layout:
 - `src/world/`: renderer, camera and lights (`Stage.js`), scenery (`environment.js`), low-poly model factories (`models.js`)
 - `src/world/scenes/`: one street scene per region (Hà Nội, Huế, Hội An, the Sài Gòn alley and night market), built from the shared Vietnamese street kit in `src/world/kit.js`
 - `src/game/`: gameplay (`Round.js` runs one level; `Fly.js`, `Npc.js`, `Food.js`, `Table.js`)
-- `src/input/`: keyboard movement (`moveKeys.js`), touch vs mouse/keyboard detection (`inputMode.js`) and the floating touch joystick (`touchStick.js`)
+- `src/input/`: keyboard movement (`moveKeys.js`), touch vs mouse/keyboard detection (`inputMode.js`) and the floating touch joystick (`touchStick.js`) and touch taps (`touchTaps.js`)
 - `src/ui/`: HTML HUD, menus and result boards over the canvas, and the S-shaped journey map shown between levels (`journeyMap.js`)
 - `src/audio/`: synthesized sound effects and the Web Audio player
 - `src/regions.js`: the five stops of the trip and the dishes each one serves
