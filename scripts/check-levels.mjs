@@ -1,9 +1,10 @@
 // Sanity checks for src/levels.js: regions and dishes, weapon schedule,
-// layout geometry and difficulty curve.
+// layout geometry, difficulty curve and each region's street-sound mix.
 import { LEVELS } from '../src/levels.js';
 import { REGIONS, dishFor } from '../src/regions.js';
 import { DISHES } from '../src/game/dishes.js';
 import { PAVING as AREA } from '../src/world/area.js';
+import { AMBIENCE } from '../src/audio/synth.js';
 
 const FOOD_MARGIN = 0.3; // dishes keep this far from a table edge (m)
 const NPC_GAP = 0.25; // a diner's stool must be at least this far from any table
@@ -17,6 +18,10 @@ const ROUTE = ['hanoi', 'hue', 'hoian', 'saigon', 'nightmarket'];
 
 const errors = [];
 const fail = (level, msg) => errors.push(`Level ${level + 1}: ${msg}`);
+
+// How busy a region's street sounds: everything but the bowls.
+const busyness = (mix) => mix.murmur + mix.traffic + mix.horns;
+const BUSY = ['saigon', 'nightmarket'];
 
 const distToTable = (t, x, z) => {
   const dx = Math.max(Math.abs(x - t.x) - t.w / 2, 0);
@@ -67,6 +72,25 @@ LEVELS.forEach((level, li) => {
       if (f.bonus && !region.bonus.includes(f.bonus)) fail(li, `bonus ${f.bonus} is not served in ${level.region}`);
       if (!f.bonus && !['high', 'medium', 'low'].includes(f.tier)) fail(li, `food needs a tier or a bonus dish`);
       if (!DISHES[dishFor(level.region, f)]) fail(li, `food resolves to unknown dish`);
+    }
+  }
+
+  // Street sounds: every layer mixed in, and Sài Gòn busier than the north.
+  const mix = region?.ambience;
+  if (region && !mix) fail(li, `region ${level.region} has no ambience mix`);
+  if (mix) {
+    for (const layer of Object.keys(AMBIENCE)) {
+      if (!(mix[layer] >= 0 && mix[layer] <= 1)) fail(li, `ambience ${layer} should be 0..1`);
+    }
+    for (const layer of Object.keys(mix)) {
+      if (!AMBIENCE[layer]) fail(li, `unknown ambience layer ${layer}`);
+    }
+    if (BUSY.includes(level.region)) {
+      for (const [id, other] of Object.entries(REGIONS)) {
+        if (!BUSY.includes(id) && other.ambience && busyness(mix) <= busyness(other.ambience)) {
+          fail(li, `${level.region} should sound busier than ${id}`);
+        }
+      }
     }
   }
 

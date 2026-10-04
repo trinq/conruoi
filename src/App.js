@@ -6,6 +6,7 @@ import { moveDirection } from './game/direction.js';
 import { MoveKeys } from './input/moveKeys.js';
 import { AudioEngine } from './audio/AudioEngine.js';
 import { GameAudio } from './audio/GameAudio.js';
+import { Ambience } from './audio/Ambience.js';
 import { UI } from './ui/ui.js';
 import { LEVELS } from './levels.js';
 import { MAX_LIVES, newGame } from './gameState.js';
@@ -23,6 +24,7 @@ export class App {
     this.env = buildEnvironment(this.stage.scene);
     this.audio = new AudioEngine();
     this.gameAudio = new GameAudio(this.audio);
+    this.ambience = new Ambience(this.audio);
     this.keys = new MoveKeys();
     this.ui = new UI(document.getElementById('ui'), this.stage);
     this.mode = 'menu';
@@ -63,6 +65,7 @@ export class App {
   showMenu() {
     this.mode = 'menu';
     this.gameAudio.stop();
+    this.ambience.stop();
     this.loadLevel(0, MAX_LIVES);
     this.ui.hideHud();
     this.ui.showMenu({
@@ -90,6 +93,10 @@ export class App {
     this.ui.showIntro(levelIndex);
 
     const round = this.round;
+    // Street sounds start with the level, or as soon as audio is allowed.
+    this.audio.onUnlock(() => {
+      if (this.round === round && this.mode === 'play') this.ambience.play(round.level.region);
+    });
     round.events
       .on('score', (score, food) => {
         this.totalScore += food.info.points;
@@ -119,6 +126,7 @@ export class App {
   endRound(message, next) {
     this.mode = 'ending';
     this.gameAudio.stop();
+    this.ambience.stop();
     this.ui.banner(message);
     setTimeout(
       () =>

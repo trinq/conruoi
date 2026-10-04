@@ -149,7 +149,9 @@ test('finishing all five levels shows the victory board', async ({ page }) => {
     await waitForMode(page, 'result');
     if (i < LEVELS.length - 1) {
       await expect(board(page)).toContainText(COPY.levelDone(i));
+      // Building the next street takes a few seconds with software WebGL.
       await page.keyboard.press('Enter');
+      await waitForMode(page, 'play');
     }
   }
   await expect(board(page)).toContainText(COPY.victory);
@@ -228,6 +230,55 @@ test('the game still plays and keeps the record for the session when storage is 
   await expect(record(page)).toHaveText(`${COPY.best}:${score}`);
   await startGame(page);
   await expect(hud(page)).toContainText(levelName(0));
+  await expectNoErrors(errors);
+});
+
+// Which region's street sounds are playing (null when silent), and how many
+// of the ambience layers are running.
+const ambience = (page) =>
+  page.evaluate(() => {
+    const a = window.__app.ambience;
+    return { region: a.region, layers: Object.values(a.layers).filter((v) => v.playing).length };
+  });
+
+test('street sounds play under each level, follow mute and stop between levels and on the menu', async ({ page }) => {
+  const errors = await openGame(page);
+  expect(await ambience(page)).toEqual({ region: null, layers: 0 });
+
+  // Sound switched off from the menu: the street plays but is silent.
+  await page.locator('.chalk-item', { hasText: COPY.menu.sound(true)[0] }).click();
+  await startGame(page);
+  await expect.poll(() => ambience(page)).toEqual({ region: LEVELS[0].region, layers: 4 });
+  expect(await page.evaluate(() => window.__app.audio.muted)).toBe(true);
+  await page.keyboard.press('m');
+  expect(await page.evaluate(() => window.__app.audio.muted)).toBe(false);
+
+  await finishLevel(page);
+  await waitForMode(page, 'result');
+  expect(await ambience(page)).toEqual({ region: null, layers: 0 });
+  await page.keyboard.press('Enter');
+  await waitForMode(page, 'play');
+  await expect.poll(() => ambience(page)).toEqual({ region: LEVELS[1].region, layers: 4 });
+
+  for (let i = 0; i < 3; i++) await strikeFly(page);
+  await waitForMode(page, 'result');
+  expect(await ambience(page)).toEqual({ region: null, layers: 0 });
+  await board(page).getByRole('button', { name: COPY.home }).click();
+  await waitForMode(page, 'menu');
+  expect(await ambience(page)).toEqual({ region: null, layers: 0 });
+  await expectNoErrors(errors);
+});
+
+test('street sounds wait until a key press or click allows audio', async ({ page }) => {
+  const errors = await openGame(page);
+  // As if the browser had not allowed audio yet.
+  await page.evaluate(() => window.__app.audio.ctx.suspend());
+  expect(await page.evaluate(() => window.__app.audio.locked)).toBe(true);
+  await page.evaluate(() => window.__app.go({ levelIndex: 3, lives: 3, totalScore: 0 }));
+  await waitForMode(page, 'play');
+  expect(await ambience(page)).toEqual({ region: null, layers: 0 });
+  await page.keyboard.press('Shift');
+  await expect.poll(() => ambience(page)).toEqual({ region: LEVELS[3].region, layers: 4 });
   await expectNoErrors(errors);
 });
 

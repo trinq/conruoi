@@ -224,4 +224,224 @@ export function jingle(sr) {
   );
 }
 
-export const SOUNDS = { buzz, munch, slap, fan, swatter, hurt, jingle };
+// ----- street ambience -----
+//
+// Long loops layered under the game, one per kind of street sound, so each
+// region can mix them differently. The layers have different lengths, so the
+// mix doesn't repeat as an obvious whole.
+
+// Renders a sound that loops without a seam: a little extra is rendered and
+// crossfaded (equal power) into the start, so the end runs straight into it.
+function seamless(seconds, sr, fn, fade = 0.5) {
+  const n = Math.floor(seconds * sr);
+  const f = Math.floor(fade * sr);
+  const raw = render(seconds + fade, sr, fn);
+  const out = raw.slice(0, n);
+  for (let i = 0; i < f; i++) {
+    const a = (i / f) * (Math.PI / 2);
+    out[i] = raw[i] * Math.sin(a) + raw[n + i] * Math.cos(a);
+  }
+  return out;
+}
+
+// Adds `samples` into the loop `out` starting at `at`, wrapping past the
+// end, so one-off events can sit anywhere in a loop, even across the seam.
+function addWrapped(out, at, samples, gain = 1) {
+  for (let i = 0; i < samples.length; i++) out[(at + i) % out.length] += samples[i] * gain;
+}
+
+// Scales a loop so its loudest sample is `peak`.
+function normalize(samples, peak = 0.5) {
+  let max = 0;
+  for (const v of samples) max = Math.max(max, Math.abs(v));
+  if (max > 0) for (let i = 0; i < samples.length; i++) samples[i] *= peak / max;
+  return samples;
+}
+
+// Two-pole band-pass (state-variable filter); returns a per-sample function.
+function bandPass(sr, q = 0.7) {
+  let low = 0;
+  let band = 0;
+  return (x, fc) => {
+    const f = 2 * Math.sin((Math.PI * Math.min(fc, sr / 6)) / sr);
+    const high = x - low - q * band;
+    band += f * high;
+    low += f * band;
+    return band;
+  };
+}
+
+// Crowd murmur: several voices chatting at once, none of them words. Each
+// voice is a breathy buzz at its own pitch through two moving vowel
+// formants, gated into syllables.
+export function murmur(sr) {
+  const rand = mulberry32(101);
+  const voices = Array.from({ length: 7 }, () => ({
+    pitch: 105 + rand() * 140,
+    phase: 0,
+    f1: bandPass(sr, 0.5),
+    f2: bandPass(sr, 0.6),
+    rate: 3 + rand() * 2.5, // syllables per second
+    gate: 0,
+    target: 0,
+    nextAt: 0,
+    vowel: rand(),
+    pan: 0.5 + rand() * 0.5,
+  }));
+  let brown = 0;
+  return normalize(
+    seamless(9, sr, (t) => {
+      let sum = 0;
+      for (const v of voices) {
+        if (t >= v.nextAt) {
+          // Start the next syllable (or a pause between phrases).
+          v.target = rand() < 0.18 ? 0 : 0.4 + rand() * 0.6;
+          v.vowel = rand();
+          v.nextAt = t + (0.6 + rand() * 0.8) / v.rate;
+        }
+        v.gate += (v.target - v.gate) * (40 / sr);
+        v.phase = (v.phase + (v.pitch * (1 + 0.04 * Math.sin(TAU * 1.3 * t + v.pan * 9))) / sr) % 1;
+        const src = (2 * v.phase - 1) * 0.6 + (rand() * 2 - 1) * 0.4;
+        const f1 = 350 + 500 * v.vowel;
+        const f2 = 1000 + 1300 * (1 - v.vowel);
+        sum += (v.f1(src, f1) + 0.6 * v.f2(src, f2)) * v.gate * v.pan;
+      }
+      brown += 0.02 * (rand() * 2 - 1 - brown);
+      return sum + brown * 0.6;
+    }),
+    0.45,
+  );
+}
+
+// Engine note of a 110 cc scooter going past: the firing pulse and its
+// harmonics, rising in pitch as it comes and dropping as it leaves.
+function passBy(sr, rand) {
+  const seconds = 3.2 + rand() * 1.6;
+  const base = 38 + rand() * 22; // firing rate (Hz)
+  const width = 0.45 + rand() * 0.35; // how quickly it goes by (s)
+  const centre = seconds / 2;
+  let phase = 0;
+  let lp = 0;
+  return declick(
+    render(seconds, sr, (t) => {
+      const x = (t - centre) / width;
+      const f = base * (1 + 0.07 * -Math.tanh(x)) * (1 + 0.02 * Math.sin(TAU * 7 * t));
+      phase = (phase + f / sr) % 1;
+      const pulse = phase < 0.22 ? 1 : -0.28;
+      const rasp = (rand() * 2 - 1) * 0.35;
+      const near = 1 / (1 + x * x);
+      // Close up the engine is brighter.
+      lp += (0.05 + 0.25 * near) * (pulse + rasp - lp);
+      return lp * near;
+    }),
+    sr,
+    20,
+  );
+}
+
+// Traffic: a low road rumble with scooters passing every few seconds.
+export function traffic(sr) {
+  const rand = mulberry32(202);
+  let rumble = 0;
+  let rumble2 = 0;
+  const out = seamless(13, sr, () => {
+    rumble += 0.004 * (rand() * 2 - 1 - rumble);
+    rumble2 += 0.03 * (rumble - rumble2);
+    return rumble2 * 6;
+  });
+  const times = [0.4, 2.6, 4.1, 6.9, 8.3, 10.6, 11.8];
+  for (const at of times) addWrapped(out, Math.floor(at * sr), passBy(sr, rand), 0.35 + rand() * 0.45);
+  return normalize(out, 0.5);
+}
+
+// One scooter horn press: two reedy tones a third apart, a little detuned.
+function horn(sr, rand, seconds) {
+  const lo = 380 + rand() * 120;
+  const hi = lo * 1.26;
+  let p1 = 0;
+  let p2 = 0;
+  let lp = 0;
+  return declick(
+    render(seconds, sr, (t) => {
+      p1 = (p1 + lo / sr) % 1;
+      p2 = (p2 + hi / sr) % 1;
+      const tone = (p1 < 0.5 ? 1 : -1) + (p2 < 0.5 ? 0.8 : -0.8);
+      lp += 0.3 * (tone - lp);
+      const env = Math.min(1, t / 0.01) * (1 - 0.3 * (t / seconds));
+      return lp * env;
+    }),
+    sr,
+    8,
+  );
+}
+
+// Horns from the street: single toots and the double "bíp bíp", at
+// different distances.
+export function horns(sr) {
+  const rand = mulberry32(303);
+  const out = new Float32Array(Math.floor(17 * sr));
+  const presses = [
+    [1.1, [0.18]],
+    [4.6, [0.12, 0.14]],
+    [7.2, [0.35]],
+    [10.4, [0.1, 0.1, 0.16]],
+    [13.3, [0.22]],
+    [15.6, [0.12, 0.2]],
+  ];
+  for (const [at, beeps] of presses) {
+    const gain = 0.3 + rand() * 0.7;
+    let t = at;
+    for (const len of beeps) {
+      addWrapped(out, Math.floor(t * sr), horn(sr, rand, len), gain);
+      t += len + 0.07;
+    }
+  }
+  return normalize(out, 0.5);
+}
+
+// A spoon or chopsticks against a ceramic bowl: a few inharmonic partials
+// that ring briefly.
+function clink(sr, rand) {
+  const f = 1700 + rand() * 1600;
+  const partials = [
+    [1, 1, 18],
+    [2.76, 0.5, 30],
+    [5.4, 0.25, 45],
+    [8.93, 0.12, 60],
+  ];
+  const tap = 0.004;
+  return render(0.3, sr, (t) => {
+    let v = (rand() * 2 - 1) * Math.exp(-t / tap) * 0.5;
+    for (const [m, a, d] of partials) if (f * m < sr / 2) v += Math.sin(TAU * f * m * t) * a * Math.exp(-t * d);
+    return v;
+  });
+}
+
+// A bowl set down on a steel table: a dull knock.
+function setDown(sr, rand) {
+  const f = 520 + rand() * 260;
+  return render(0.25, sr, (t) => (Math.sin(TAU * f * t) * 0.8 + (rand() * 2 - 1) * 0.3) * Math.exp(-t * 28));
+}
+
+// Clinking bowls and spoons at the tables around.
+export function bowls(sr) {
+  const rand = mulberry32(404);
+  const out = new Float32Array(Math.floor(7 * sr));
+  for (let i = 0; i < 14; i++) {
+    const at = Math.floor(rand() * out.length);
+    addWrapped(out, at, clink(sr, rand), 0.25 + rand() * 0.75);
+    // Spoons often tap twice.
+    if (rand() < 0.4) addWrapped(out, at + Math.floor((0.12 + rand() * 0.1) * sr), clink(sr, rand), 0.3 + rand() * 0.4);
+  }
+  for (let i = 0; i < 3; i++) addWrapped(out, Math.floor(rand() * out.length), setDown(sr, rand), 0.6);
+  return normalize(out, 0.5);
+}
+
+// The ambience layers every region mixes (see `ambience` in src/regions.js).
+export const AMBIENCE = { murmur, traffic, horns, bowls };
+
+// Sample rates the layers are rendered at: low and mid sounds don't need
+// the full rate, and Web Audio resamples them when they play.
+export const SAMPLE_RATES = { murmur: 16000, traffic: 12000, horns: 22050, bowls: 32000 };
+
+export const SOUNDS = { buzz, munch, slap, fan, swatter, hurt, jingle, ...AMBIENCE };
