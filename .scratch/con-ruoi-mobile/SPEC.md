@@ -10,18 +10,22 @@ Người chơi Việt Nam chủ yếu chơi game trên điện thoại, đa số
 
 Giữ nguyên game hiện có (three.js, HTML overlay, mọi hình và âm thanh tạo bằng code) và làm cho nó chơi tốt bằng cảm ứng trên điện thoại, rồi bọc thành app Android bằng **Capacitor** để đưa lên Google Play. Chỉ có một codebase: bản web trên GitHub Pages cũng chơi được trên trình duyệt điện thoại, và app Android đóng gói đúng bản build đó, chạy offline.
 
-| Phần | Máy tính (giữ nguyên) | Điện thoại |
+| Phần | Máy tính | Điện thoại |
 |---|---|---|
-| Bay | WASD / mũi tên | Joystick ảo nổi ở nửa trái màn hình |
-| Đậu xuống ăn | Click vào món | Chạm vào món (vùng chạm nới rộng) |
-| Tạm dừng | Không có (thêm phím P / Esc) | Nút ⏸ trên HUD, tự dừng khi app xuống nền |
-| Tắt tiếng | Phím M, mục "Âm thanh" | Mục "Âm thanh", nút loa trong bảng tạm dừng |
+| Bay | WASD / mũi tên (giữ nguyên) | Joystick ảo nổi ở nửa trái màn hình |
+| Đậu xuống ăn | Click vào món (giữ nguyên) | Chạm vào món (vùng chạm nới rộng) |
+| Tạm dừng | Mới: phím P / Esc, nút ⏸ | Nút ⏸ trên HUD, tự dừng khi app xuống nền, nút Back |
+| Tắt tiếng | Phím M, mục "Âm thanh" | Mục "Âm thanh", cả trong bảng tạm dừng |
+| Rung | Không có | Mục "Rung: Bật/Tắt", mặc định bật |
 | Đồ hoạ | "Đẹp" mặc định | Tự chọn mức theo máy, có thể chỉnh |
 | Hướng màn hình | Tự do | Khoá ngang |
 
 Luật chơi giữ nguyên: 3 mạng, vùng cảnh báo đỏ rồi mới đập, điểm theo mức món, 5 màn Bắc → Nam, bản đồ chữ S, Kỷ lục, âm thanh nền theo vùng.
 
-Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt điện thoại trước (dễ thử và sửa nhanh qua GitHub Pages), rồi mới bọc Capacitor và phát hành.
+Làm theo thứ tự web → APK → Play:
+1. Làm cho bản web chơi tốt trên trình duyệt điện thoại (dễ thử và sửa nhanh).
+2. Bọc Capacitor và chia file APK cho người thân qua GitHub Release.
+3. Đưa công khai lên Google Play với tên "Con Ruồi: Xuyên Việt": miễn phí, không quảng cáo, không thu thập dữ liệu, cho người từ 13 tuổi, phát hành toàn cầu.
 
 ## User Stories
 
@@ -33,7 +37,7 @@ Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt �
 4. As a phone player, I want dishes to be easy to hit even when they look small on screen, so that I don't miss taps and get slapped.
 5. As a phone player, I want to keep flying with one thumb while tapping a dish with the other, so that both hands work at once.
 6. As a phone player, I want the joystick to disappear when I lift my thumb, so that it never covers the table.
-7. As a phone player, I want short vibration when I get hit, so that I feel the slap even with sound off.
+7. As a phone player, I want a short vibration when I get hit, and a "Rung: Bật/Tắt" item on the menu and pause board (on by default, hidden when the device can't vibrate), so that I feel the slap even with sound off and can turn it off separately from sound.
 8. As a desktop player, I want the keyboard and mouse controls to stay exactly as they are, so that nothing I'm used to changes.
 
 ### Màn hình và bố cục
@@ -49,7 +53,7 @@ Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt �
 
 15. As a phone player, I want a pause button on the HUD, so that I can stop when someone calls me.
 16. As a phone player, I want the game to pause by itself when I switch apps, lock the screen or get a call, so that I don't lose lives while away.
-17. As a player, I want a "Tạm nghỉ" chalkboard with "Bay tiếp", "Âm thanh" and "Về quán", so that I can resume, mute or quit.
+17. As a player, I want a "Tạm nghỉ" chalkboard with "Bay tiếp", "Âm thanh", "Rung" and "Về quán", so that I can resume, change settings or quit.
 18. As a player, I want game time, diners' strikes and sounds to freeze while paused, so that a pause is really a pause.
 19. As a desktop player, I want P or Esc to pause too, so that pausing works on every device.
 20. As an Android player, I want the Back button to pause during a level, close a board or the how-to on the menu, and leave the app from the home screen, so that it behaves like other Android games.
@@ -68,19 +72,23 @@ Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt �
 
 ### App Android
 
-27. As an Android player, I want to install "Con Ruồi" from Google Play, so that I don't need a browser.
-28. As an Android player, I want the app to work with no internet, so that I can play on the bus.
-29. As an Android player, I want an app icon with the nón lá fly on a red sign, and a short red splash screen, so that it looks like the game.
-30. As an Android player, I want my Kỷ lục kept between app launches and updates, so that my record isn't lost.
-31. As an Android player, I want the app to run full screen, without the status bar, so that the street fills the screen.
-32. As a player who cares about privacy, I want the app to collect no data and ask for no permissions, so that I can install it without worry.
+27. As an Android player, I want to install "Con Ruồi: Xuyên Việt" from Google Play in any country, with a Vietnamese description and a short English one, so that Vietnamese players abroad can find it too.
+28. As a friend or relative of the maintainer, I want to download the APK from a GitHub Release link before the game is on Play, and later move to the Play version without losing my Kỷ lục, so that I can play early.
+29. As an Android player, I want the app to work with no internet, so that I can play on the bus.
+30. As an Android player, I want an app icon with the nón lá fly on a red sign, and a short red splash screen, so that it looks like the game.
+31. As an Android player, I want my Kỷ lục kept between app launches and updates, so that my record isn't lost.
+32. As an Android player, I want the app to run full screen, without the status bar, so that the street fills the screen.
+33. As a player who cares about privacy, I want the app to be free, with no ads, no purchases, no data collection, no crash reporting and no permissions, so that I can install it without worry.
+34. As a tester, I want a "Báo lỗi" link on the how-to board that opens a GitHub issue form, so that I can report problems without the app collecting anything.
 
 ### Phát hành
 
-33. As the maintainer, I want CI to build a debug APK on every pull request, so that I can install a PR build on my phone.
-34. As the maintainer, I want a manual workflow that builds a signed release bundle (AAB) from `main`, so that publishing is repeatable and the signing key stays in GitHub secrets.
-35. As the maintainer, I want a privacy policy page on the GitHub Pages site, so that the Play listing has the URL it requires.
-36. As the maintainer, I want the store listing text (tên, mô tả ngắn, mô tả đầy đủ) kept in the repo next to the copy deck, so that the tone matches the game.
+35. As the maintainer, I want CI to build a debug APK on every pull request, so that I can install a PR build on my phone.
+36. As the maintainer, I want a manual workflow that builds a signed release bundle (AAB) from `main`, and a signed APK attached to a GitHub Release, both signed with my upload key from GitHub secrets, so that publishing is repeatable and the key never sits in the repo.
+37. As the maintainer, I want a privacy policy page on the GitHub Pages site, so that the Play listing has the URL it requires.
+38. As the maintainer, I want the store listing text (tên, mô tả ngắn, mô tả đầy đủ, in Vietnamese plus a short English version) kept in the repo next to the copy deck, so that the tone matches the game.
+39. As the maintainer, I want the icon, feature graphic and store screenshots generated by a script in the repo, so that they stay in the game's style and can be regenerated when the game changes.
+40. As the maintainer, I want a checklist for the steps only I can do (Play account, upload key, closed test, production release), so that nothing is forgotten.
 
 ## Implementation Decisions
 
@@ -89,7 +97,7 @@ Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt �
 - **Floating joystick.** A touch that starts in the left 45% of the screen (outside a board) creates a joystick at that point. Its offset, clamped to a radius of about 60 CSS px, gives a direction and a 0..1 strength. That feeds the same move direction the keyboard produces today, scaled by strength. A dead zone of about 10% avoids drift. The joystick is HTML in the overlay, styled like chalk on a small board.
 - **Taps go through the existing click-to-land path.** A tap (short, little movement) outside the joystick area calls the same `round.click` as a mouse click. A drag that starts on the right half is ignored. Several pointers are tracked by `pointerId`, so one thumb can fly while the other taps.
 - **Bigger touch targets for dishes.** In touch mode, picking first tries the existing raycast. If that misses, it falls back to the nearest ready dish whose projected screen position lies within about 44 CSS px of the tap. Mouse picking is unchanged.
-- **Rules unchanged, fairness measured.** Wind-up times, cooldowns and reach stay as in `src/levels.js`. Playtests on real phones decide whether touch needs help. If it does, the only knob is a single touch multiplier on `windupMs`, applied in one place and checked by the level check. It is not added until a playtest shows it is needed.
+- **Rules unchanged, fairness measured.** Wind-up times, cooldowns and reach stay as in `src/levels.js`. Playtests on real phones decide whether touch needs help: the test is whether playtesters can finish level 3 with touch. If they can't, the only knob is a single touch multiplier on `windupMs` (at most 1.3), applied in one place and checked by the level check. It is not added until a playtest shows it is needed.
 - **Pause is a real game state.** A new `paused` mode stops `round.update` (game time freezes), suspends the audio context and shows the "Tạm nghỉ" chalkboard. `visibilitychange` (hidden) and the Capacitor `pause` event enter it during a level. Resuming is always manual ("Bay tiếp"), never automatic. The HUD gets a ⏸ sign button. P and Esc pause on desktop.
 - **Android Back button.** It is handled through the Capacitor App plugin:
   - during play → pause;
@@ -109,34 +117,46 @@ Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt �
   - The choice is saved like the best score (defensive storage).
   - On the menu and boards the frame rate is capped at 30 fps to save battery.
 - **Audio.** The existing first-pointer unlock already covers touch. The pause state and app backgrounding suspend the `AudioContext`; resuming the game resumes it. Mute, the menu sound item and the pause board share one setting, and it is saved.
-- **Haptics.** A short vibration on a hit and a double pulse on game over, via the Capacitor Haptics plugin in the app and `navigator.vibrate` in the browser. It follows the sound setting.
+- **Haptics.** A short vibration on a hit and a double pulse on game over, via the Capacitor Haptics plugin in the app and `navigator.vibrate` in the browser. A separate "Rung: Bật/Tắt" setting (on by default, saved, shown only where vibration works) controls it, independent of sound.
 - **Copy deck.** New strings go in `src/copy.js`:
   - pause: "Tạm nghỉ", "Bay tiếp";
+  - haptics: "Rung", "Bật" / "Tắt";
+  - "Báo lỗi" link text;
   - rotate: "Xoay ngang điện thoại nhé!";
   - touch how-to: "Kéo ngón cái bên trái để bay", "Chạm vào món để đậu xuống ăn";
   - the store listing text.
-  The M key line is shown only in keyboard mode.
+  The M key line is shown only in keyboard mode. The hit reaction stays "Á đù!" / "Ui da!" (the audience is 13+).
 - **App identity.**
-  - App id `io.github.trinq.conruoi`, name "Con Ruồi".
-  - The icon and splash are drawn in code (the SVG nón lá mascot on the red sign), and a script renders them to the PNG sizes Android needs at build time, so there are still no hand-made art files.
+  - App id `io.github.trinq.conruoi` (permanent once on Play).
+  - Store title "Con Ruồi: Xuyên Việt" (Play titles are limited to 30 characters); launcher name "Con Ruồi".
+  - The icon, splash and the 1024 × 500 feature graphic are drawn in code (the SVG nón lá mascot on the red sign). A script renders them to the PNG sizes Android and Play need, so there are still no hand-made art files.
+  - Store screenshots come from a Playwright script at a landscape phone size: home screen, Hà Nội, Hội An at sunset, the night market and the journey map. The maintainer reviews them before upload.
   - Full screen (immersive) with the status bar hidden.
   - No permissions requested.
-- **Storage.** Kỷ lục and settings stay in `localStorage`, which the Android WebView keeps across launches and app updates (cleared only when the user clears app data). No Capacitor storage plugin is needed.
+- **Storage.** Kỷ lục and settings stay in `localStorage`, which the Android WebView keeps across launches and app updates (cleared only when the user clears app data). No Capacitor storage plugin is needed. The browser and the app keep separate records; there is no sync (no accounts).
 - **Build and release.**
   - `npm run android:sync` builds the web app and copies it into `android/`.
-  - CI adds a job that builds a debug APK and uploads it as a workflow artifact on every pull request.
-  - A manual `release-android` workflow builds a signed AAB from `main`, with the upload keystore and passwords in GitHub secrets. The keystore is created and kept by the maintainer, never committed.
-  - `versionCode` comes from the workflow run number; `versionName` comes from `package.json`.
+  - The app targets Android 16 (API level 36), which Play requires for new apps and updates from 31 August 2026; the Capacitor version is picked to support it.
+  - CI adds a job that builds a debug APK and uploads it as a workflow artifact on every pull request (for trying a PR; artifacts need a GitHub login and expire).
+  - A manual `release-android` workflow builds, from `main`, a signed AAB for Play and a signed APK attached to a GitHub Release (the link shared with friends and family).
+  - Signing uses Play App Signing: Google holds the app signing key, and the maintainer creates and keeps the upload key (with `keytool`, following a guide in the repo), stores it in a password manager and in GitHub secrets. It is never committed and Claude never creates or holds it. The GitHub Release APK is signed with the same upload key so testers can later update to the Play version without losing their data.
+  - `versionName` comes from `package.json`: `0.x` for the APK-only phase, `1.0.0` for the first Play release. `versionCode` comes from the workflow run number.
 - **Store presence.**
-  - A static privacy policy page (`/privacy.html`, Vietnamese and English) is deployed with GitHub Pages. It states that the app collects no data, has no ads and no network calls.
-  - Content rating answers: cartoon slapstick, no violence against people, no user content.
+  - A personal Play developer account (one-time 25 USD). Personal accounts created after 13 November 2023 must run a closed test with at least 12 testers opted in for 14 days in a row before production; the maintainer gathers 15–20 testers from the APK phase so dropouts don't reset the clock.
+  - Free, no ads, no in-app purchases. Released in all countries; listing in Vietnamese with a short English description; the game itself stays Vietnamese only.
+  - Target audience 13+ (not designed for children, so the Families policy does not apply).
+  - A static privacy policy page (`/privacy.html`, Vietnamese and English) is deployed with GitHub Pages. It states that the app collects no data, has no ads, no crash reporting and no network calls.
+  - Content rating answers: cartoon slapstick, mild crude humour, no violence against people, no user content.
   - The Data safety form declares no data collected.
-- **Delivery in five slices**, each playable on its own:
-  1. touch controls (input mode, joystick, tap to land, bigger dish targets);
-  2. mobile layout and pause (landscape, safe areas, rotate hint, fit-to-screen boards, pause state and button, visibility pause, touch how-to copy);
-  3. phone performance (quality tiers, auto step-down, capped idle frame rate, fps check on real devices);
-  4. Capacitor Android shell (project, icon and splash, Back button, haptics, immersive mode, CI debug APK);
-  5. Play release (signing workflow, privacy page, store listing, closed testing).
+  - No analytics or crash-reporting SDK. Native crashes show in Play Console's Android vitals; testers report everything else through the "Báo lỗi" link (a GitHub issue form).
+- **Delivery in five slices**, one pull request each, one commit per ticket (tickets are in `issues/`):
+  1. **PR A, touch controls:** 01 input mode and floating joystick; 02 tap to land, bigger dish targets, multi-touch.
+  2. **PR B, phone layout and pause:** 03 landscape, safe areas, fit-to-screen boards, rotate hint; 04 pause (button, P/Esc, visibility, Tạm nghỉ board); 05 touch how-to, haptics and the Rung setting, Báo lỗi link.
+  3. **PR C, phone performance:** 06 quality tiers, auto step-down, capped idle frame rate.
+  4. **PR D, Android app:** 07 Capacitor shell (icon, splash, immersive, Back button, native haptics); 08 CI debug APK and signed APK on GitHub Release.
+  5. **PR E, Play release:** 09 signed AAB workflow, privacy page, store listing, generated store graphics, and the maintainer's checklist.
+  The closed test and the production release are done by the maintainer in Play Console.
+- **Merge rule.** PRs A, B and C are merged only after the maintainer has tried them on a real phone and said "ok" (the PR includes a way to open that build on a phone). PRs D and E are merged when CI is green.
 
 ## Testing Decisions
 
@@ -153,26 +173,34 @@ Làm theo thứ tự này: làm cho bản web chơi tốt trên trình duyệt �
   - no console errors.
   Desktop gains P/Esc pause and stays otherwise unchanged. Every wait on game time uses `SLOW`.
 - **Seam 3: Android build.** CI builds the debug APK on every pull request (assemble only, no emulator), so a broken Capacitor config fails the PR.
-- **Manual on real devices**, recorded in the PR for slices 3–5:
-  - one low-end phone (2 GB RAM, Helio G-class), one mid-range (Snapdragon 6-series) and one recent flagship;
+- **Target devices.** A mid-range phone from about 2021 on (4 GB RAM, e.g. Redmi Note 10, Galaxy A32) must run smoothly; a cheap phone with 2–3 GB RAM (e.g. Helio G35, Galaxy A03) must be playable at about 30 fps on the lightest tier.
+- **Manual on real devices** by the maintainer, on one mid-range and one weak phone, recorded in the PR:
   - for each: fps on the night market level, temperature after 10 minutes, touch feel;
-  - whether playtesters can finish level 3 with touch (to decide on the wind-up multiplier);
+  - whether playtesters can finish level 3 with touch (to decide on the wind-up multiplier, at most 1.3);
   - Back button, backgrounding and incoming calls.
   Screenshots on a real phone are attached to each PR, as with earlier slices.
 
 ## Out of Scope
 
 - iOS (Capacitor makes it possible later; not in this round).
+- An installable PWA for the web version (cheap after slices 1–3; an idea for later).
+- Syncing Kỷ lục or settings between the browser and the app.
+- A left-handed option that swaps the joystick to the right (only if playtesters ask).
+- Analytics and crash-reporting SDKs.
+- Gameplay in portrait.
+- Making the game easier on touch from the start (only the capped wind-up multiplier, and only after playtests).
 - Changing the core rules, levels, regions or dishes.
 - Ads, in-app purchases, accounts, cloud saves and online leaderboards.
 - Tablet-specific layouts (tablets get the phone layout scaled up).
 - Controllers and gamepads.
-- A portrait mode for gameplay.
 - Publishing on stores other than Google Play.
 
 ## Further Notes
 
-- Google Play rules change often. When this spec was written, a new personal developer account had to run a closed test with at least 12 testers for 14 days before the app could go to production, and apps had to target a recent Android API level. Check the current rules when opening the account (one-time 25 USD fee) and plan the closed test into slice 5.
-- Open question for playtests: floating joystick versus "drag the fly with your finger". The joystick is chosen because the finger would cover the fly and the strike zone under it. Revisit if playtesters struggle.
-- Open question: whether the web version should also become an installable PWA. It costs little once slices 1–3 are done, but it is not needed for the Android app.
+- Decisions in this spec were settled in a review on 2026-10-04 (three rounds of questions).
+- Google Play facts checked on 2026-10-04 (rules change often; recheck when opening the account):
+  - personal accounts created after 13 November 2023 need a closed test with at least 12 testers opted in for 14 days in a row before production ([Play Console Help](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en));
+  - new apps and updates must target Android 16 (API 36) from 31 August 2026 ([Play Console Help](https://support.google.com/googleplay/android-developer/answer/11926878?hl=en));
+  - Google is rolling out developer verification for all apps on certified Android devices, sideloaded APKs included: required from September 2026 in Brazil, Indonesia, Singapore and Thailand, and globally from 2027 ([Android Authority](https://www.androidauthority.com/android-developer-verification-requirements-3590911/)). The GitHub Release APKs keep working in Vietnam during 2026; registering the account and package name before 2027 keeps them installable after that.
+- Open question for playtests: floating joystick versus "drag the fly with your finger" or "tap a spot to fly there". The joystick is chosen because a finger would cover the fly and the strike zone under it. A tap-to-move option is added only if playtesters struggle.
 - The deploy workflow keeps publishing the web version from `main`. Store releases are manual and come from tagged commits on `main`, so the web and app versions can be matched.
