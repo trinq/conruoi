@@ -67,7 +67,14 @@ export class UI {
     this.screenLayer = el('div');
     this.fadeLayer = el('div', { class: 'fade' });
     this.muteLabel = el('div', { class: 'mute' });
-    root.append(this.world, this.hudLayer, this.screenLayer, this.muteLabel, this.fadeLayer);
+    this.stickKnob = el('div', { class: 'knob' });
+    this.stick = el(
+      'div',
+      { class: 'joystick', hidden: '' },
+      svg('0 0 120 120', '<path d="M60 12l-8 9h16zM60 108l-8-9h16zM12 60l9-8v16zM108 60l-9-8v16z"/>'),
+      this.stickKnob,
+    );
+    root.append(this.world, this.hudLayer, this.stick, this.screenLayer, this.muteLabel, this.fadeLayer);
     this.bars = new Map();
 
     // Enter always presses the main button of the board on screen, even after
@@ -162,6 +169,23 @@ export class UI {
 
   banner(text) {
     this.world.append(el('div', { class: 'banner' }, text));
+  }
+
+  // ----- touch joystick -----
+
+  // Drawn by TouchStick: where the thumb landed, and the knob's offset.
+  showStick(x, y) {
+    this.stick.style.left = `${x}px`;
+    this.stick.style.top = `${y}px`;
+    this.stick.hidden = false;
+  }
+
+  moveStick(dx, dy) {
+    this.stickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+  }
+
+  hideStick() {
+    this.stick.hidden = true;
   }
 
   // ----- world-anchored -----

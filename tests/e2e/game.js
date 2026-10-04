@@ -79,3 +79,52 @@ export async function goToLevel(page, index) {
 export async function expectNoErrors(errors) {
   expect(errors, errors.join('\n')).toEqual([]);
 }
+
+// ----- touch -----
+
+// Starts level 1 the way a phone player does: a tap on "Bay thôi".
+export async function tapToStart(page, playLabel) {
+  await page.getByRole('button', { name: playLabel }).tap();
+  await waitForMode(page, 'play');
+}
+
+// Diners stop picking the fly as a target, so a slap can't knock it off
+// course in the middle of a touch check.
+export async function calmDiners(page) {
+  await page.evaluate(() => {
+    window.__app.round.fly.canBeTargeted = () => false;
+  });
+}
+
+export async function flyState(page) {
+  return page.evaluate(() => {
+    const f = window.__app.round.fly;
+    return { x: f.x, z: f.z, speed: f.speed, state: f.state };
+  });
+}
+
+// Fingers on the touchscreen, sent through CDP so several can be down at
+// once (Playwright's touchscreen only taps). Ids name the fingers.
+export async function fingers(page) {
+  const cdp = await page.context().newCDPSession(page);
+  const down = new Map();
+  const send = (type) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: [...down.values()] });
+  return {
+    async down(id, x, y) {
+      down.set(id, { id, x, y });
+      await send('touchStart');
+    },
+    // Slides the finger to (x, y) in `steps` moves.
+    async move(id, x, y, steps = 4) {
+      const from = down.get(id);
+      for (let i = 1; i <= steps; i++) {
+        down.set(id, { id, x: from.x + ((x - from.x) * i) / steps, y: from.y + ((y - from.y) * i) / steps });
+        await send('touchMove');
+      }
+    },
+    async up(id) {
+      down.delete(id);
+      await send('touchEnd');
+    },
+  };
+}

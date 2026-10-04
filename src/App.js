@@ -4,6 +4,8 @@ import { buildEnvironment } from './world/environment.js';
 import { Round } from './game/Round.js';
 import { moveDirection } from './game/direction.js';
 import { MoveKeys } from './input/moveKeys.js';
+import { InputMode } from './input/inputMode.js';
+import { TouchStick } from './input/touchStick.js';
 import { AudioEngine } from './audio/AudioEngine.js';
 import { GameAudio } from './audio/GameAudio.js';
 import { UI } from './ui/ui.js';
@@ -24,12 +26,20 @@ export class App {
     this.audio = new AudioEngine();
     this.gameAudio = new GameAudio(this.audio);
     this.keys = new MoveKeys();
+    this.input = new InputMode();
     this.ui = new UI(document.getElementById('ui'), this.stage);
     this.mode = 'menu';
     this.round = null;
 
     const canvas = this.stage.renderer.domElement;
+    const ui = this.ui;
+    this.stick = new TouchStick(
+      canvas,
+      { show: (x, y) => ui.showStick(x, y), move: (dx, dy) => ui.moveStick(dx, dy), hide: () => ui.hideStick() },
+      { enabled: () => this.mode === 'play' },
+    );
     canvas.addEventListener('pointerdown', (e) => {
+      if (this.stick.owns(e.pointerId)) return;
       if (this.mode === 'play') this.round.click(this.stage.pointerNdc(e), this.stage.camera);
     });
     canvas.addEventListener('pointermove', (e) => {
@@ -118,6 +128,7 @@ export class App {
 
   endRound(message, next) {
     this.mode = 'ending';
+    this.stick.release();
     this.gameAudio.stop();
     this.ui.banner(message);
     setTimeout(
@@ -163,12 +174,18 @@ export class App {
     return len < 0.3 ? { x: 0, z: 0 } : { x: dx / len, z: dz / len };
   }
 
+  // The joystick while a thumb is on it, else the keyboard.
+  moveInput() {
+    const touch = this.stick.direction();
+    return touch.x !== 0 || touch.z !== 0 ? touch : moveDirection(this.keys.state());
+  }
+
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
     this.env.update(now, dt / 1000);
     if (this.mode === 'play') {
-      this.round.update(dt, moveDirection(this.keys.state()));
+      this.round.update(dt, this.moveInput());
       this.gameAudio.update(this.round.fly, dt / 1000);
       this.ui.updateBars(this.round.foods);
     } else {

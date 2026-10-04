@@ -13,6 +13,10 @@ Built with [three.js](https://threejs.org). Every model (trees, stall, tables, d
 - **Red zone on the table**: a hand is about to slap there; move away
 - **M**: mute / unmute
 
+On a phone or touchscreen:
+
+- **Drag on the left side**: a joystick appears under your thumb; push further to fly faster
+
 ## Development
 
 ```bash
@@ -23,6 +27,8 @@ npm run check:levels  # validate src/levels.js
 npm run test:e2e      # play the game in Chromium (Playwright)
 ```
 
+The browser tests run in two Playwright projects: `desktop` plays the whole game with keyboard and mouse, and `phone` (a landscape Android phone with touch) plays only the touch scenarios in `tests/e2e/touch.spec.js`.
+
 On a machine that already has Chromium, point the tests at it with `CHROMIUM_PATH=/path/to/chromium npm run test:e2e`; otherwise run `npx playwright install chromium` once. Every pull request runs the level check, the build and the browser tests in GitHub Actions (`.github/workflows/ci.yml`).
 
 Code layout:
@@ -30,6 +36,7 @@ Code layout:
 - `src/world/`: renderer, camera and lights (`Stage.js`), scenery (`environment.js`), low-poly model factories (`models.js`)
 - `src/world/scenes/`: one street scene per region (Hà Nội, Huế, Hội An, the Sài Gòn alley and night market), built from the shared Vietnamese street kit in `src/world/kit.js`
 - `src/game/`: gameplay (`Round.js` runs one level; `Fly.js`, `Npc.js`, `Food.js`, `Table.js`)
+- `src/input/`: keyboard movement (`moveKeys.js`), touch vs mouse/keyboard detection (`inputMode.js`) and the floating touch joystick (`touchStick.js`)
 - `src/ui/`: HTML HUD, menus and result boards over the canvas, and the S-shaped journey map shown between levels (`journeyMap.js`)
 - `src/audio/`: synthesized sound effects and the Web Audio player
 - `src/regions.js`: the five stops of the trip and the dishes each one serves
