@@ -94,3 +94,39 @@ test('a drag that starts on the right, even on a dish, neither flies nor lands t
   expect(fly.speed).toBeLessThan(0.05);
   await expectNoErrors(errors);
 });
+
+test('flying onto a dish and letting go of the joystick lands and eats', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await calmDiners(page);
+
+  // Put the fly just short of a dish, then nudge it there with the stick.
+  const dish = await page.evaluate(() => {
+    const r = window.__app.round;
+    const food = r.foods.find((f) => f.ready);
+    r.fly.x = food.x - 0.15;
+    r.fly.z = food.z;
+    return { points: food.info.points };
+  });
+  const touch = await fingers(page);
+  await touch.down(1, 170, 290);
+  await touch.move(1, 195, 290);
+  await expect(joystick(page)).toBeVisible();
+  await touch.up(1);
+  await expect(hud(page)).toContainText(scoreText(dish.points), SLOW);
+  await expectNoErrors(errors);
+});
+
+test('letting go of the joystick away from any dish does not land', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await calmDiners(page);
+  const touch = await fingers(page);
+  await touch.down(1, 170, 290);
+  await touch.move(1, 195, 290);
+  await touch.up(1);
+  const t0 = await page.evaluate(() => window.__app.round.time);
+  await page.waitForFunction((t) => window.__app.round.time > t + 600, t0, SLOW);
+  expect((await flyState(page)).state).toBe('flying');
+  await expectNoErrors(errors);
+});

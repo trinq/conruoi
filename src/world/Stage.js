@@ -78,6 +78,7 @@ export class Stage {
     this.shakeLeft = 0;
     this.shakeAmount = 0;
     this.basePosition = new THREE.Vector3();
+    this.zoom = 1;
 
     this.setTimeOfDay('noon');
     this.resize();
@@ -98,6 +99,14 @@ export class Stage {
     this.renderer.toneMappingExposure = t.exposure;
   }
 
+  // Moves the camera closer by `zoom` (1 frames the whole play area). Phones
+  // use a little more so the table and dishes are big enough to see and tap.
+  setZoom(zoom) {
+    if (zoom === this.zoom) return;
+    this.zoom = zoom;
+    this.resize();
+  }
+
   resize() {
     const w = this.container.clientWidth || window.innerWidth;
     const h = this.container.clientHeight || window.innerHeight;
@@ -105,7 +114,7 @@ export class Stage {
     const aspect = w / h;
     this.camera.aspect = aspect;
     const t = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-    const dist = Math.max(HALF_WIDTH / (t * aspect), HALF_HEIGHT / t);
+    const dist = Math.max(HALF_WIDTH / (t * aspect), HALF_HEIGHT / t) / this.zoom;
     this.basePosition.set(0, Math.sin(PITCH) * dist, Math.cos(PITCH) * dist).add(TARGET);
     this.camera.position.copy(this.basePosition);
     this.camera.lookAt(TARGET);

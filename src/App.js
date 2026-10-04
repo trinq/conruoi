@@ -18,6 +18,8 @@ import { readBest, saveBest } from './bestScore.js';
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
 const TAP_REACH_PX = 44; // a touch tap this close to a dish still picks it
+const TOUCH_ZOOM = 1.4; // phones frame the play area a little closer
+const AUTO_LAND_M = 0.5; // lifting the joystick this close above a dish lands on it
 
 // Game flow: menu → level → (level complete → next level | game over),
 // with the 3D scene always rendering behind the HTML boards.
@@ -38,8 +40,11 @@ export class App {
     this.stick = new TouchStick(
       canvas,
       { show: (x, y) => ui.showStick(x, y), move: (dx, dy) => ui.moveStick(dx, dy), hide: () => ui.hideStick() },
-      { enabled: () => this.mode === 'play' },
+      { enabled: () => this.mode === 'play', onLift: () => this.stickLifted() },
     );
+    const zoom = () => this.stage.setZoom(this.input.touch ? TOUCH_ZOOM : 1);
+    this.input.onChange(zoom);
+    zoom();
     new TouchTaps(canvas, (e) => this.tap(e), { onStick: (id) => this.stick.owns(id) });
     // Mouse (and pen) pick on press, as before; touch picks on a tap.
     canvas.addEventListener('pointerdown', (e) => {
@@ -68,6 +73,11 @@ export class App {
     const r = this.stage.renderer.domElement.getBoundingClientRect();
     const reach = this.input.touch ? { reachPx: TAP_REACH_PX, size: { width: r.width, height: r.height } } : {};
     if (this.round.click(this.stage.pointerNdc(e), this.stage.camera, reach)) this.stick.hold();
+  }
+
+  // On touch, flying onto a dish and letting go of the joystick lands there.
+  stickLifted() {
+    if (this.mode === 'play' && this.input.touch) this.round.landOnDishBelow(AUTO_LAND_M);
   }
 
   loadLevel(levelIndex, lives) {

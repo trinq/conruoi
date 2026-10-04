@@ -122,6 +122,25 @@ export class Round {
     return this.fly.state === 'landing' ? food : null;
   }
 
+  // Lands the flying fly on the ready dish it is hovering over (within
+  // `radius` m on the ground), if any. Returns that dish.
+  landOnDishBelow(radius) {
+    const fly = this.fly;
+    if (this.over || fly.state !== 'flying') return null;
+    let best = null;
+    let bestDist = radius;
+    for (const food of this.foods) {
+      if (!food.ready) continue;
+      const dist = Math.hypot(food.x - fly.x, food.z - fly.z);
+      if (dist <= bestDist) {
+        best = food;
+        bestDist = dist;
+      }
+    }
+    if (best) fly.landOn(best);
+    return best && fly.state === 'landing' ? best : null;
+  }
+
   onEat(food) {
     if (this.over) return;
     this.score += food.info.points;

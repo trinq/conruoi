@@ -15,9 +15,10 @@ const HOLD_SLOP = 12; // CSS px the thumb must move to take back control
 // quiet: the stick gives no input until the thumb moves again, so the fly
 // can land and eat while the thumb stays on the screen.
 //
-// `view` draws it: show(x, y), move(dx, dy), hide().
+// `view` draws it: show(x, y), move(dx, dy), hide(). `onLift` runs when the
+// thumb leaves the stick.
 export class TouchStick {
-  constructor(element, view, { enabled = () => true } = {}) {
+  constructor(element, view, { enabled = () => true, onLift = () => {} } = {}) {
     this.view = view;
     this.enabled = enabled;
     this.stick = null; // { id, x, y, dx, dy }
@@ -43,7 +44,9 @@ export class TouchStick {
       this.view.move(s.dx, s.dy);
     });
     const end = (e) => {
-      if (this.stick && e.pointerId === this.stick.id) this.release();
+      if (!this.stick || e.pointerId !== this.stick.id) return;
+      this.release();
+      if (this.enabled()) onLift();
     };
     element.addEventListener('pointerup', end);
     element.addEventListener('pointercancel', end);

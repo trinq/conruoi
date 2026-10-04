@@ -17,6 +17,7 @@ On a phone or touchscreen:
 
 - **Drag on the left side**: a joystick appears under your thumb; push further to fly faster
 - **Tap a dish** (or just beside it): fly to it, land and eat; works while the other thumb is on the joystick
+- **Fly onto a dish and let go of the joystick**: land and eat
 
 ## Development
 
