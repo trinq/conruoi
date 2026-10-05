@@ -4,6 +4,9 @@ import { buildEnvironment } from './world/environment.js';
 import { Round } from './game/Round.js';
 import { moveDirection } from './game/direction.js';
 import { MoveKeys } from './input/moveKeys.js';
+import { InputMode } from './input/inputMode.js';
+import { TouchStick } from './input/touchStick.js';
+import { TouchTaps } from './input/touchTaps.js';
 import { AudioEngine } from './audio/AudioEngine.js';
 import { GameAudio } from './audio/GameAudio.js';
 import { Ambience } from './audio/Ambience.js';
@@ -15,6 +18,9 @@ import { readBest, saveBest } from './bestScore.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
+const TAP_REACH_PX = 44; // a touch tap this close to a dish still picks it
+const TOUCH_ZOOM = 1.4; // phones frame the play area a little closer
+const AUTO_LAND_M = 0.5; // lifting the joystick this close above a dish lands on it
 
 // Game flow: menu → level → (level complete → next level | game over),
 // with the 3D scene always rendering behind the HTML boards.
@@ -26,15 +32,28 @@ export class App {
     this.gameAudio = new GameAudio(this.audio);
     this.ambience = new Ambience(this.audio);
     this.keys = new MoveKeys();
+    this.input = new InputMode();
     this.ui = new UI(document.getElementById('ui'), this.stage);
     this.mode = 'menu';
     this.round = null;
 
     const canvas = this.stage.renderer.domElement;
+    const ui = this.ui;
+    this.stick = new TouchStick(
+      canvas,
+      { show: (x, y) => ui.showStick(x, y), move: (dx, dy) => ui.moveStick(dx, dy), hide: () => ui.hideStick() },
+      { enabled: () => this.mode === 'play', onLift: () => this.stickLifted() },
+    );
+    const zoom = () => this.stage.setZoom(this.input.touch ? TOUCH_ZOOM : 1);
+    this.input.onChange(zoom);
+    zoom();
+    new TouchTaps(canvas, (e) => this.tap(e), { onStick: (id) => this.stick.owns(id) });
+    // Mouse (and pen) pick on press, as before; touch picks on a tap.
     canvas.addEventListener('pointerdown', (e) => {
-      if (this.mode === 'play') this.round.click(this.stage.pointerNdc(e), this.stage.camera);
+      if (e.pointerType !== 'touch' && this.mode === 'play') this.round.click(this.stage.pointerNdc(e), this.stage.camera);
     });
     canvas.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
       const over = this.mode === 'play' && this.round.pick(this.stage.pointerNdc(e), this.stage.camera);
       canvas.style.cursor = over ? 'pointer' : '';
     });
@@ -46,6 +65,21 @@ export class App {
     this.showMenu();
     this.last = performance.now();
     requestAnimationFrame((t) => this.frame(t));
+  }
+
+  // A touch tap goes down the click-to-land path, with a wider reach since a
+  // fingertip is bigger than the dishes look. A thumb resting on the joystick
+  // then lets the fly land until it moves again.
+  tap(e) {
+    if (this.mode !== 'play') return;
+    const r = this.stage.renderer.domElement.getBoundingClientRect();
+    const reach = this.input.touch ? { reachPx: TAP_REACH_PX, size: { width: r.width, height: r.height } } : {};
+    if (this.round.click(this.stage.pointerNdc(e), this.stage.camera, reach)) this.stick.hold();
+  }
+
+  // On touch, flying onto a dish and letting go of the joystick lands there.
+  stickLifted() {
+    if (this.mode === 'play' && this.input.touch) this.round.landOnDishBelow(AUTO_LAND_M);
   }
 
   loadLevel(levelIndex, lives) {
@@ -125,6 +159,7 @@ export class App {
 
   endRound(message, next) {
     this.mode = 'ending';
+    this.stick.release();
     this.gameAudio.stop();
     this.ambience.stop();
     this.ui.banner(message);
@@ -171,12 +206,18 @@ export class App {
     return len < 0.3 ? { x: 0, z: 0 } : { x: dx / len, z: dz / len };
   }
 
+  // The joystick while a thumb is on it, else the keyboard.
+  moveInput() {
+    const touch = this.stick.direction();
+    return touch.x !== 0 || touch.z !== 0 ? touch : moveDirection(this.keys.state());
+  }
+
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
     this.env.update(now, dt / 1000);
     if (this.mode === 'play') {
-      this.round.update(dt, moveDirection(this.keys.state()));
+      this.round.update(dt, this.moveInput());
       this.gameAudio.update(this.round.fly, dt / 1000);
       this.ui.updateBars(this.round.foods);
     } else {

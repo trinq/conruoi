@@ -10,3 +10,15 @@ export function moveDirection({ up, down, left, right }) {
   const len = Math.hypot(x, z);
   return len === 0 ? { x: 0, z: 0 } : { x: x / len, z: z / len };
 }
+
+// Maps a joystick offset in screen pixels (dy down) to a move vector on the
+// ground plane whose length (0..1) is how hard the stick is pushed. Offsets
+// inside the dead zone give no input; past it the push ramps up from 0, so
+// small careful moves are possible.
+export function stickDirection(dx, dy, radius, deadZone) {
+  const len = Math.hypot(dx, dy);
+  const push = Math.min(1, len / radius);
+  if (push <= deadZone) return { x: 0, z: 0 };
+  const strength = (push - deadZone) / (1 - deadZone);
+  return { x: (dx / len) * strength, z: (dy / len) * strength };
+}

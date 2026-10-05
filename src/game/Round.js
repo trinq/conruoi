@@ -72,6 +72,7 @@ export class Round {
     });
 
     this.raycaster = new THREE.Raycaster();
+    this.projected = new THREE.Vector3();
   }
 
   surfaceAt(x, z) {
@@ -93,10 +94,51 @@ export class Round {
     return null;
   }
 
-  click(ndc, camera) {
-    if (this.over) return;
-    const food = this.pick(ndc, camera);
-    if (food) this.fly.landOn(food);
+  // Ready dish whose centre is drawn nearest the pointer, within `reachPx`
+  // CSS px of it on a canvas of `size` ({ width, height } in CSS px).
+  pickNear(ndc, camera, reachPx, size) {
+    let best = null;
+    let bestDist = reachPx;
+    for (const food of this.foods) {
+      if (!food.ready) continue;
+      const p = this.projected.copy(food.model.position).project(camera);
+      const dist = Math.hypot(((p.x - ndc.x) * size.width) / 2, ((p.y - ndc.y) * size.height) / 2);
+      if (dist <= bestDist) {
+        best = food;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
+  // Lands the fly on the dish under the pointer. With `reachPx` (touch), a
+  // tap that misses every dish takes the nearest one within that distance.
+  // Returns the dish the fly is now heading to, if any.
+  click(ndc, camera, { reachPx = 0, size } = {}) {
+    if (this.over) return null;
+    const food = this.pick(ndc, camera) ?? (reachPx > 0 ? this.pickNear(ndc, camera, reachPx, size) : null);
+    if (!food) return null;
+    this.fly.landOn(food);
+    return this.fly.state === 'landing' ? food : null;
+  }
+
+  // Lands the flying fly on the ready dish it is hovering over (within
+  // `radius` m on the ground), if any. Returns that dish.
+  landOnDishBelow(radius) {
+    const fly = this.fly;
+    if (this.over || fly.state !== 'flying') return null;
+    let best = null;
+    let bestDist = radius;
+    for (const food of this.foods) {
+      if (!food.ready) continue;
+      const dist = Math.hypot(food.x - fly.x, food.z - fly.z);
+      if (dist <= bestDist) {
+        best = food;
+        bestDist = dist;
+      }
+    }
+    if (best) fly.landOn(best);
+    return best && fly.state === 'landing' ? best : null;
   }
 
   onEat(food) {

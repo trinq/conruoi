@@ -8,7 +8,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] Input mode switches between touch and mouse/keyboard on the player's actual input
-- [ ] Dragging on the left side shows the joystick under the thumb and flies the fly; speed follows how far it is pushed; lifting the finger hides it and stops
-- [ ] Desktop controls behave exactly as before
-- [ ] e2e (phone project: landscape ~915 × 412, hasTouch, isMobile): dragging moves the fly and shows/hides the joystick; desktop suite unchanged; waits on game time use `SLOW`
+- [x] Input mode switches between touch and mouse/keyboard on the player's actual input
+- [x] Dragging on the left side shows the joystick under the thumb and flies the fly; speed follows how far it is pushed; lifting the finger hides it and stops
+- [x] Desktop controls behave exactly as before
+- [x] e2e (phone project: landscape ~915 × 412, hasTouch, isMobile): dragging moves the fly and shows/hides the joystick; desktop suite unchanged; waits on game time use `SLOW`

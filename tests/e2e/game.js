@@ -79,3 +79,86 @@ export async function goToLevel(page, index) {
 export async function expectNoErrors(errors) {
   expect(errors, errors.join('\n')).toEqual([]);
 }
+
+// ----- touch -----
+
+// Starts level 1 the way a phone player does: a tap on "Bay thôi".
+export async function tapToStart(page, playLabel) {
+  await page.getByRole('button', { name: playLabel }).tap();
+  await waitForMode(page, 'play');
+}
+
+// Diners stop picking the fly as a target, so a slap can't knock it off
+// course in the middle of a touch check.
+export async function calmDiners(page) {
+  await page.evaluate(() => {
+    window.__app.round.fly.canBeTargeted = () => false;
+  });
+}
+
+export async function flyState(page) {
+  return page.evaluate(() => {
+    const f = window.__app.round.fly;
+    return { x: f.x, z: f.z, speed: f.speed, state: f.state };
+  });
+}
+
+// Screen point of a ready dish (of `tier`, if given, and drawn right of
+// `minX`), with its catalogue entry. With `beside`, the point is that many
+// CSS px away from the dish, where a precise pick misses but the dish is
+// still the nearest within a fingertip's reach.
+export async function dishPoint(page, { tier, minX = 0, beside = 0 } = {}) {
+  return page.evaluate(
+    ({ tier, minX, beside }) => {
+      const app = window.__app;
+      const { round, stage } = app;
+      const r = stage.renderer.domElement.getBoundingClientRect();
+      const size = { width: r.width, height: r.height };
+      const ndc = (x, y) => ({ x: (x / r.width) * 2 - 1, y: -(y / r.height) * 2 + 1 });
+      for (const food of round.foods) {
+        if (!food.ready || (tier && food.info.tier !== tier)) continue;
+        const p = stage.project(food.model.position.clone().setY(food.model.position.y + 0.08));
+        if (p.x < minX) continue;
+        const entry = { points: food.info.points, name: food.info.name };
+        if (!beside) return { x: p.x, y: p.y, ...entry };
+        for (let i = 0; i < 16; i++) {
+          const a = (i / 16) * Math.PI * 2;
+          const x = p.x + Math.cos(a) * beside;
+          const y = p.y + Math.sin(a) * beside;
+          const at = ndc(x, y);
+          if (!round.pick(at, stage.camera) && round.pickNear(at, stage.camera, 44, size) === food) return { x, y, ...entry };
+        }
+      }
+      return null;
+    },
+    { tier, minX, beside },
+  );
+}
+
+// Fingers on the touchscreen, sent through CDP so several can be down at
+// once (Playwright's touchscreen only taps). Ids name the fingers.
+export async function fingers(page) {
+  const cdp = await page.context().newCDPSession(page);
+  const down = new Map();
+  const send = (type, touchPoints = [...down.values()]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  return {
+    async down(id, x, y) {
+      down.set(id, { id, x, y });
+      await send('touchStart');
+    },
+    // Slides the finger to (x, y) in `steps` moves.
+    async move(id, x, y, steps = 4) {
+      const from = down.get(id);
+      for (let i = 1; i <= steps; i++) {
+        down.set(id, { id, x: from.x + ((x - from.x) * i) / steps, y: from.y + ((y - from.y) * i) / steps });
+        await send('touchMove');
+      }
+    },
+    // Chromium releases the points a touchEnd lists.
+    async up(id) {
+      const point = down.get(id);
+      down.delete(id);
+      await send('touchEnd', [point]);
+    },
+  };
+}

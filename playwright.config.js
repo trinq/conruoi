@@ -2,6 +2,10 @@ import { defineConfig } from '@playwright/test';
 
 // Drives the real game in Chromium through the dev server. WebGL runs on
 // SwiftShader so it works on CI machines without a GPU.
+//
+// Two projects: the desktop one plays everything except the touch file; the
+// phone one (a landscape Android phone) plays only the touch file, so the
+// suite doesn't run twice under software rendering.
 export default defineConfig({
   testDir: 'tests/e2e',
   timeout: 120_000,
@@ -19,6 +23,14 @@ export default defineConfig({
     },
     trace: 'retain-on-failure',
   },
+  projects: [
+    { name: 'desktop', testIgnore: /touch\.spec\.js/ },
+    {
+      name: 'phone',
+      testMatch: /touch\.spec\.js/,
+      use: { viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true },
+    },
+  ],
   webServer: {
     command: 'npm run dev -- --port 5174 --strictPort',
     url: 'http://localhost:5174',
