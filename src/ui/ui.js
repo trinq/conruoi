@@ -361,6 +361,7 @@ export class UI {
   }
 
   showMenu({ onPlay, onToggleSound, onQuality, audioLocked, best, touch = () => false }) {
+    this.view = 'menu';
     this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked, best, touch };
     this.onToggleSound = onToggleSound;
     this.onQuality = onQuality;
@@ -386,6 +387,7 @@ export class UI {
   }
 
   showHowTo() {
+    this.view = 'howTo';
     this.showScreen(
       'home',
       el(

@@ -16,6 +16,7 @@ import { MAX_LIVES, newGame } from './gameState.js';
 import { COPY } from './copy.js';
 import { readBest, saveBest } from './bestScore.js';
 import { canVibrate, vibrateOn, setVibrate, vibrateHit, vibrateGameOver } from './haptics.js';
+import { connectNative } from './native.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
@@ -75,6 +76,7 @@ export class App {
     });
     this.audio.onUnlock(() => this.ui.hideAudioHint());
 
+    connectNative(this);
     this.showMenu();
     this.checkOrientation();
     this.last = performance.now();
@@ -114,6 +116,20 @@ export class App {
           this.showMenu();
         }),
     });
+  }
+
+  // Android's Back button: pauses a level, resumes from the pause board,
+  // leaves the how-to, goes home from a result board, and calls `exit` on
+  // the home screen.
+  back(exit) {
+    if (this.ui.fading) return;
+    if (this.mode === 'play') this.pause();
+    else if (this.mode === 'paused') this.resume();
+    else if (this.mode === 'result') this.ui.fade(() => this.showMenu());
+    else if (this.mode === 'menu') {
+      if (this.ui.view === 'howTo') this.ui.showMenu(this.ui.menuOptions);
+      else exit();
+    }
   }
 
   resume() {

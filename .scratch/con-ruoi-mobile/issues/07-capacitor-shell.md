@@ -9,6 +9,6 @@
 **Status:** ready-for-agent
 
 - [ ] App builds and runs offline with the generated icon and splash, landscape and full screen
-- [ ] Back button behaves as above; backgrounding pauses
+- [x] Back button behaves as above; backgrounding pauses
 - [ ] Haptics through the plugin, following the Rung setting
 - [ ] Kỷ lục and settings survive closing and reopening the app

@@ -178,3 +178,32 @@ test('a hit vibrates while Rung is on; switched off it stays still, also after a
   await expect(rung()).toContainText(COPY.menu.vibrate(false)[1]);
   await expectNoErrors(errors);
 });
+
+test('the Back button pauses, resumes, leaves the how-to, goes home from a result and exits from home', async ({ page }) => {
+  const errors = await openGame(page);
+  const back = () => page.evaluate(() => {
+    window.__exited = false;
+    window.__app.back(() => (window.__exited = true));
+    return window.__exited;
+  });
+
+  await page.getByRole('button', { name: COPY.menu.howTo[0] }).tap();
+  await expect(board(page)).toContainText(COPY.howToTitle);
+  expect(await back()).toBe(false);
+  await expect(board(page)).toContainText(COPY.menuTitle);
+
+  await tapToStart(page, COPY.menu.play[0]);
+  await back();
+  await expect(pauseBoard(page)).toBeVisible();
+  await back();
+  await waitForMode(page, 'play');
+
+  await page.evaluate(() => window.__app.showGameOver({ levelIndex: 0, totalScore: 0 }));
+  await expect(board(page)).toContainText(COPY.gameOver);
+  await back();
+  await waitForMode(page, 'menu');
+  await expect(board(page)).toContainText(COPY.menuTitle);
+
+  expect(await back()).toBe(true);
+  await expectNoErrors(errors);
+});
