@@ -1,0 +1,31 @@
+name: Báo lỗi
+description: Gặp lỗi khi chơi Con Ruồi? Kể cho tụi mình nghe nhé.
+title: "[Lỗi] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cảm ơn bạn đã báo lỗi! Game không tự thu thập gì, nên mọi thông tin ở đây là do bạn kể.
+  - type: textarea
+    id: what
+    attributes:
+      label: Chuyện gì đã xảy ra?
+      description: Bạn đang làm gì, và game làm gì khác với bạn nghĩ?
+    validations:
+      required: true
+  - type: input
+    id: level
+    attributes:
+      label: Màn nào?
+      placeholder: "Ví dụ: Màn 3 · Hội An"
+  - type: input
+    id: device
+    attributes:
+      label: Máy và trình duyệt
+      placeholder: "Ví dụ: Redmi Note 10, Chrome / app Con Ruồi 0.2"
+  - type: textarea
+    id: more
+    attributes:
+      label: Ảnh chụp hoặc ghi chú thêm
+      description: Kéo thả ảnh chụp màn hình vào đây nếu có.

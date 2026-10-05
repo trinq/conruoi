@@ -28,7 +28,7 @@ export async function startGame(page) {
 }
 
 export const hud = (page) => page.locator('.hud');
-export const board = (page) => page.locator('.board');
+export const board = (page) => page.locator('.screen .board');
 
 export async function fullHearts(page) {
   return page.locator('.hud .heart-full').count();

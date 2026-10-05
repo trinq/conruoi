@@ -16,6 +16,11 @@
   --ink: #1d1712;
   --sign-font: 'Paytone One', 'Arial Black', sans-serif;
   --chalk-font: 'Patrick Hand', 'Comic Sans MS', cursive;
+  /* Room kept clear of the notch, rounded corners and navigation bar. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
   color-scheme: dark;
 }
 
@@ -118,6 +123,7 @@ body {
     0 5px 0 var(--sign-red-dark);
   text-shadow: 0 2px 0 var(--sign-red-dark);
   padding: 8px 26px 10px;
+  min-height: 44px;
   cursor: pointer;
   pointer-events: auto;
   transition: transform 0.08s ease, box-shadow 0.08s ease;
@@ -231,6 +237,7 @@ body {
   background: none;
   border: 0;
   padding: 4px 6px;
+  min-height: 44px;
   font: 400 clamp(24px, 3.2vw, 30px) var(--chalk-font);
   color: var(--chalk);
   text-shadow: inherit;
@@ -277,6 +284,15 @@ body {
   cursor: pointer;
   pointer-events: auto;
   padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+a.chalk-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 .hint {
@@ -320,7 +336,7 @@ body {
   place-items: center;
   align-content: center;
   gap: 22px;
-  padding: 16px;
+  padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-left));
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.35));
   pointer-events: auto;
   overflow-y: auto;
@@ -523,7 +539,7 @@ body {
 
 .hud {
   position: absolute;
-  inset: 12px 16px auto 16px;
+  inset: max(12px, var(--safe-top)) max(16px, var(--safe-right)) auto max(16px, var(--safe-left));
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -573,6 +589,33 @@ body {
   background-image: none;
 }
 
+.hud-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* The ⏸ sign: a small square plaque, the only HUD part that takes taps. */
+.pause-btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+}
+
+.pause-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: var(--sign-yellow);
+  filter: drop-shadow(0 2px 0 var(--sign-red-dark));
+}
+
+.pause .board {
+  width: min(400px, 100%);
+  text-align: left;
+}
+
 .hearts {
   display: flex;
   gap: 4px;
@@ -609,8 +652,8 @@ body {
 
 .mute {
   position: absolute;
-  right: 16px;
-  bottom: 14px;
+  right: max(16px, var(--safe-right));
+  bottom: max(14px, var(--safe-bottom));
   font: 400 18px var(--chalk-font);
   color: var(--chalk);
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
@@ -806,5 +849,174 @@ body {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ----- rotate hint ----- */
+
+/* Covers the game in a phone browser held upright. */
+.rotate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: max(16px, var(--safe-top)) max(16px, var(--safe-right)) max(16px, var(--safe-bottom)) max(16px, var(--safe-left));
+  background: rgba(20, 28, 23, 0.92);
+  pointer-events: auto;
+  z-index: 5;
+}
+
+.rotate[hidden] {
+  display: none;
+}
+
+.rotate .board {
+  box-sizing: border-box;
+  width: min(320px, 100%);
+  justify-items: center;
+}
+
+.rotate h2 {
+  font-size: 28px;
+}
+
+.rotate svg {
+  width: 96px;
+  height: 96px;
+  stroke: var(--chalk);
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ----- short landscape screens (phones) ----- */
+
+/* Every board fits a 740 x 360 screen without scrolling: the home screen
+   puts the sign beside the menu, and sizes follow the screen height. */
+@media (max-height: 520px) {
+  .screen {
+    gap: 4px 20px;
+    padding: max(8px, var(--safe-top)) max(16px, var(--safe-right)) max(8px, var(--safe-bottom)) max(16px, var(--safe-left));
+  }
+
+  .home {
+    grid-auto-flow: column;
+  }
+
+  .title-sign,
+  .board {
+    box-sizing: border-box;
+  }
+
+  .home .board {
+    width: min(420px, 52vw);
+  }
+
+  .title-sign {
+    width: min(340px, 40vw);
+    padding: 10px 18px 0;
+  }
+
+  .title-sign h1 {
+    font-size: clamp(34px, 12vh, 56px);
+  }
+
+  .title-sign .slogan {
+    margin: 0 0 8px;
+    font-size: clamp(14px, 4.4vh, 20px);
+  }
+
+  .title-sign .strip {
+    margin: 0 -18px;
+    font-size: clamp(11px, 3.4vh, 14px);
+  }
+
+  .board {
+    padding: 6px 18px 6px;
+    gap: 2px;
+    border-width: 7px;
+  }
+
+  .board h2 {
+    font-size: clamp(24px, 8vh, 36px);
+  }
+
+  .board .chalk-title {
+    font-size: clamp(20px, 6vh, 26px);
+    padding-bottom: 2px;
+  }
+
+  .board p {
+    font-size: clamp(15px, 4.6vh, 20px);
+  }
+
+  .chalk-item {
+    font-size: clamp(20px, 6.4vh, 26px);
+    padding: 0 6px;
+  }
+
+  .record {
+    margin-top: 0;
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  .record b {
+    font-size: 22px;
+  }
+
+  .hint {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .stats {
+    font-size: 18px;
+  }
+
+  .stats b {
+    font-size: clamp(22px, 7vh, 30px);
+  }
+
+  .board .best.new {
+    font-size: 22px;
+  }
+
+  .actions {
+    margin-top: 2px;
+  }
+
+  .sign-btn {
+    font-size: clamp(18px, 5.4vh, 24px);
+    padding: 6px 20px 8px;
+  }
+
+  .howto {
+    gap: 2px 12px;
+    grid-template-columns: 48px 1fr;
+  }
+
+  .howto svg {
+    width: 48px;
+    height: 36px;
+  }
+
+  .howto b {
+    font-size: 18px;
+    line-height: 1.15;
+  }
+
+  .howto span {
+    font-size: 15px;
+    line-height: 1.2;
+  }
+
+  .journey {
+    gap: 4px 20px;
+  }
+
+  .journey-map {
+    height: min(calc(100vh - 56px - var(--safe-top) - var(--safe-bottom)), 470px);
   }
 }

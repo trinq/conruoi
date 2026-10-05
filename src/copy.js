@@ -17,8 +17,11 @@ export const COPY = {
     sound: (on) => ['Âm thanh', on ? 'Bật' : 'Tắt'],
     // 'Nhẹ' turns shadows off for weaker machines.
     quality: (high) => ['Đồ hoạ', high ? 'Đẹp' : 'Nhẹ'],
+    // Shown only where the device can vibrate.
+    vibrate: (on) => ['Rung', on ? 'Bật' : 'Tắt'],
   },
   audioHint: 'Click hoặc bấm phím bất kỳ để bật âm thanh',
+  audioHintTouch: 'Chạm vào màn hình để bật âm thanh',
   muted: 'Đã tắt tiếng (M)',
   howToTitle: 'Cách chơi',
   howTo: [
@@ -27,6 +30,14 @@ export const COPY = {
     ['zone', 'Thấy vùng đỏ', 'Tay, quạt hay vợt sắp đập xuống đó, bay đi ngay!'],
     ['key-m', 'Phím M', 'Tắt / bật tiếng'],
   ],
+  // The same board when playing by touch.
+  howToTouch: [
+    ['stick', 'Kéo ngón cái bên trái để bay', 'Đẩy càng xa bay càng nhanh'],
+    ['bowl', 'Chạm vào món để đậu xuống ăn', 'Hoặc bay lên món rồi thả tay. Tô to thì nhiều điểm nhưng phải ngồi lâu'],
+    ['zone', 'Thấy vùng đỏ', 'Tay, quạt hay vợt sắp đập xuống đó, bay đi ngay!'],
+  ],
+  report: 'Báo lỗi',
+  reportUrl: 'https://github.com/trinq/conruoi/issues/new?template=bug_report.yml',
   back: '‹ Quay lại',
   hud: {
     score: 'No',
@@ -60,4 +71,13 @@ export const COPY = {
   best: 'Kỷ lục',
   bestScore: (n) => `Kỷ lục: ${n}`,
   newBest: 'Kỷ lục mới!',
+  // The pause board.
+  pause: {
+    title: 'Tạm nghỉ',
+    button: 'Tạm nghỉ (P)',
+    resume: ['Bay tiếp', '▶'],
+    home: ['Về quán', '⌂'],
+  },
+  // Shown over the game in a phone browser held upright.
+  rotate: 'Xoay ngang điện thoại nhé!',
 };

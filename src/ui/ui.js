@@ -51,6 +51,7 @@ const HOWTO_ICONS = {
         '<path d="M22 12c0-4 4-4 4-8M32 12c0-4 4-4 4-8"/><path d="M50 30l8 12-5-1-2 5z"/>',
     ),
   zone: () => svg('0 0 64 48', '<ellipse cx="32" cy="34" rx="26" ry="10"/><path d="M32 4v18m-6-6 6 6 6-6"/>', 'zone'),
+  stick: () => svg('0 0 64 48', '<circle cx="32" cy="24" r="19"/><circle cx="40" cy="20" r="8"/><path d="M12 24h-6m52 0h-6M32 4v-3"/>'),
   'key-m': () => svg('0 0 64 48', '<rect x="18" y="8" width="28" height="28" rx="4"/><path d="M25 29V16l7 8 7-8v13"/>'),
 };
 
@@ -74,7 +75,21 @@ export class UI {
       svg('0 0 120 120', '<path d="M60 12l-8 9h16zM60 108l-8-9h16zM12 60l9-8v16zM108 60l-9-8v16z"/>'),
       this.stickKnob,
     );
-    root.append(this.world, this.hudLayer, this.stick, this.screenLayer, this.muteLabel, this.fadeLayer);
+    this.rotateHint = el(
+      'div',
+      { class: 'rotate', hidden: '' },
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        svg(
+          '0 0 96 96',
+          '<rect x="34" y="14" width="28" height="48" rx="5"/><path d="M44 56h8"/>' +
+            '<path d="M18 70c6 12 20 18 34 16"/><path d="M48 80l6 6-7 4"/>',
+        ),
+        el('h2', {}, COPY.rotate),
+      ),
+    );
+    root.append(this.world, this.hudLayer, this.stick, this.screenLayer, this.muteLabel, this.rotateHint, this.fadeLayer);
     this.bars = new Map();
 
     // Enter always presses the main button of the board on screen, even after
@@ -113,7 +128,8 @@ export class UI {
 
   // ----- HUD -----
 
-  showHud(levelIndex, level) {
+  // `onPause` runs when the ⏸ sign is pressed.
+  showHud(levelIndex, level, { onPause } = {}) {
     this.clearWorld();
     this.scoreText = el('span');
     this.scoreFill = el('div');
@@ -130,7 +146,15 @@ export class UI {
           el('div', { class: 'score-bar' }, this.scoreFill),
         ),
         el('div', { class: 'sign level-sign' }, `${COPY.hud.level(levelIndex)} · ${levelName(levelIndex)}`),
-        this.hearts,
+        el(
+          'div',
+          { class: 'hud-right' },
+          this.hearts,
+          this.button('sign-btn pause-btn', svg('0 0 24 24', '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'), () => onPause?.(), {
+            once: false,
+            label: COPY.pause.button,
+          }),
+        ),
       ),
     );
     this.target = level.targetScore;
@@ -169,6 +193,11 @@ export class UI {
 
   banner(text) {
     this.world.append(el('div', { class: 'banner' }, text));
+  }
+
+  // A phone held upright gets a board asking to turn it sideways.
+  setRotateHint(show) {
+    this.rotateHint.hidden = !show;
   }
 
   // ----- touch joystick -----
@@ -247,7 +276,7 @@ export class UI {
 
   // A button that runs `onClick` once by default, so double clicks during a
   // fade can't start two games.
-  button(cls, content, onClick, { primary = false, once = true } = {}) {
+  button(cls, content, onClick, { primary = false, once = true, label } = {}) {
     let fired = false;
     const attrs = {
       class: cls,
@@ -259,6 +288,10 @@ export class UI {
       },
     };
     if (primary) attrs['data-primary'] = '';
+    if (label) {
+      attrs['aria-label'] = label;
+      attrs.title = label;
+    }
     return el('button', attrs, ...[content].flat());
   }
 
@@ -280,6 +313,16 @@ export class UI {
     return this.menuItem(COPY.menu.sound(on), () => this.onToggleSound?.(), { once: false });
   }
 
+  // "Rung: Bật/Tắt", only where vibration works.
+  vibrateButton() {
+    if (!this.haptics?.available) return null;
+    const item = this.menuItem(COPY.menu.vibrate(this.haptics.on()), () => {
+      this.haptics.set(!this.haptics.on());
+      item.replaceWith(this.vibrateButton());
+    }, { once: false });
+    return item;
+  }
+
   qualityButton() {
     const item = this.menuItem(COPY.menu.quality(this.quality === 'high'), () => {
       this.quality = this.quality === 'high' ? 'low' : 'high';
@@ -299,12 +342,30 @@ export class UI {
     );
   }
 
-  showMenu({ onPlay, onToggleSound, onQuality, audioLocked, best }) {
-    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked, best };
+  // The "Tạm nghỉ" board over a paused level.
+  showPause({ onResume, onToggleSound, onHome }) {
+    this.onToggleSound = onToggleSound;
+    this.soundItem = this.soundButton(!this.muted);
+    this.showScreen(
+      'pause',
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        el('h2', {}, COPY.pause.title),
+        this.menuItem(COPY.pause.resume, onResume, { primary: true }),
+        this.soundItem,
+        this.vibrateButton(),
+        this.menuItem(COPY.pause.home, onHome),
+      ),
+    );
+  }
+
+  showMenu({ onPlay, onToggleSound, onQuality, audioLocked, best, touch = () => false }) {
+    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked, best, touch };
     this.onToggleSound = onToggleSound;
     this.onQuality = onQuality;
     this.soundItem = this.soundButton(!this.muted);
-    const hint = audioLocked() ? el('p', { class: 'hint' }, COPY.audioHint) : null;
+    const hint = audioLocked() ? el('p', { class: 'hint' }, touch() ? COPY.audioHintTouch : COPY.audioHint) : null;
     this.showScreen(
       'home',
       this.titleSign(),
@@ -315,6 +376,7 @@ export class UI {
         this.menuItem(COPY.menu.play, onPlay, { primary: true }),
         this.menuItem(COPY.menu.howTo, () => this.showHowTo(), { once: false }),
         this.soundItem,
+        this.vibrateButton(),
         this.qualityButton(),
         hint,
         el('div', { class: 'record' }, el('span', {}, `${COPY.best}:`), el('b', {}, String(best))),
@@ -333,7 +395,7 @@ export class UI {
         el(
           'div',
           { class: 'howto' },
-          ...COPY.howTo.flatMap(([icon, title, text]) => [
+          ...(this.menuOptions.touch() ? COPY.howToTouch : COPY.howTo).flatMap(([icon, title, text]) => [
             HOWTO_ICONS[icon](),
             el('div', {}, el('b', {}, title), el('span', {}, text)),
           ]),
@@ -342,6 +404,7 @@ export class UI {
           'div',
           { class: 'actions' },
           this.button('chalk-link', COPY.back, () => this.showMenu(this.menuOptions), { primary: true }),
+          el('a', { class: 'chalk-link', href: COPY.reportUrl, target: '_blank', rel: 'noopener' }, COPY.report),
         ),
       ),
     );

@@ -15,6 +15,7 @@ import { LEVELS } from './levels.js';
 import { MAX_LIVES, newGame } from './gameState.js';
 import { COPY } from './copy.js';
 import { readBest, saveBest } from './bestScore.js';
+import { canVibrate, vibrateOn, setVibrate, vibrateHit, vibrateGameOver } from './haptics.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
@@ -34,6 +35,7 @@ export class App {
     this.keys = new MoveKeys();
     this.input = new InputMode();
     this.ui = new UI(document.getElementById('ui'), this.stage);
+    this.ui.haptics = { available: canVibrate, on: vibrateOn, set: setVibrate };
     this.mode = 'menu';
     this.round = null;
 
@@ -47,6 +49,12 @@ export class App {
     const zoom = () => this.stage.setZoom(this.input.touch ? TOUCH_ZOOM : 1);
     this.input.onChange(zoom);
     zoom();
+
+    // Phones play in landscape; held upright, a board asks to turn them.
+    this.portrait = window.matchMedia('(orientation: portrait)');
+    const rotate = () => this.checkOrientation();
+    this.portrait.addEventListener('change', rotate);
+    this.input.onChange(rotate);
     new TouchTaps(canvas, (e) => this.tap(e), { onStick: (id) => this.stick.owns(id) });
     // Mouse (and pen) pick on press, as before; touch picks on a tap.
     canvas.addEventListener('pointerdown', (e) => {
@@ -59,10 +67,16 @@ export class App {
     });
     window.addEventListener('keydown', (e) => {
       if (e.code === 'KeyM' && !e.repeat) this.toggleSound();
+      if ((e.code === 'KeyP' || e.code === 'Escape') && !e.repeat) this.pause();
+    });
+    // Switching app or tab, locking the screen or a call pauses a level.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.pause();
     });
     this.audio.onUnlock(() => this.ui.hideAudioHint());
 
     this.showMenu();
+    this.checkOrientation();
     this.last = performance.now();
     requestAnimationFrame((t) => this.frame(t));
   }
@@ -75,6 +89,38 @@ export class App {
     const r = this.stage.renderer.domElement.getBoundingClientRect();
     const reach = this.input.touch ? { reachPx: TAP_REACH_PX, size: { width: r.width, height: r.height } } : {};
     if (this.round.click(this.stage.pointerNdc(e), this.stage.camera, reach)) this.stick.hold();
+  }
+
+  checkOrientation() {
+    const upright = this.input.touch && this.portrait.matches;
+    this.ui.setRotateHint(upright);
+    if (upright) this.pause();
+  }
+
+  // Freezes a level: game time stops, sound is held, and the "Tạm nghỉ"
+  // board shows. Only "Bay tiếp" resumes.
+  pause() {
+    if (this.mode !== 'play') return;
+    this.mode = 'paused';
+    this.stick.release();
+    this.stage.shakeLeft = 0;
+    this.audio.hold(true);
+    this.ui.showPause({
+      onResume: () => this.resume(),
+      onToggleSound: () => this.toggleSound(),
+      onHome: () =>
+        this.ui.fade(() => {
+          this.audio.hold(false);
+          this.showMenu();
+        }),
+    });
+  }
+
+  resume() {
+    if (this.mode !== 'paused') return;
+    this.mode = 'play';
+    this.audio.hold(false);
+    this.ui.hideScreen();
   }
 
   // On touch, flying onto a dish and letting go of the joystick lands there.
@@ -108,6 +154,7 @@ export class App {
       onQuality: (level) => this.stage.setQuality(level),
       audioLocked: () => this.audio.locked,
       best: readBest(),
+      touch: () => this.input.touch,
     });
   }
 
@@ -121,7 +168,7 @@ export class App {
     this.totalScore = totalScore;
     this.mode = 'play';
     this.ui.hideScreen();
-    this.ui.showHud(levelIndex, this.round.level);
+    this.ui.showHud(levelIndex, this.round.level, { onPause: () => this.pause() });
     this.ui.setScore(0);
     this.ui.setLives(lives);
     this.ui.showIntro(levelIndex);
@@ -147,6 +194,7 @@ export class App {
       })
       .on('hit', () => {
         this.gameAudio.hurt();
+        vibrateHit();
         const fly = round.fly;
         this.ui.hitReaction(new THREE.Vector3(fly.x, fly.altitude + 0.5, fly.z));
       })
@@ -154,7 +202,10 @@ export class App {
       .on('won', () =>
         this.endRound(COPY.targetReached, () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),
       )
-      .on('lost', () => this.endRound(COPY.outOfLives, () => this.showGameOver({ levelIndex, totalScore: this.totalScore })));
+      .on('lost', () => {
+        vibrateGameOver();
+        this.endRound(COPY.outOfLives, () => this.showGameOver({ levelIndex, totalScore: this.totalScore }));
+      });
   }
 
   endRound(message, next) {
@@ -215,6 +266,12 @@ export class App {
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
+    // While paused only the frozen scene is drawn.
+    if (this.mode === 'paused') {
+      this.stage.render(0);
+      requestAnimationFrame((t) => this.frame(t));
+      return;
+    }
     this.env.update(now, dt / 1000);
     if (this.mode === 'play') {
       this.round.update(dt, this.moveInput());

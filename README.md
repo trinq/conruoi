@@ -12,12 +12,14 @@ Built with [three.js](https://threejs.org). Every model (trees, stall, tables, d
 - **Click a dish**: fly to it, land and eat
 - **Red zone on the table**: a hand is about to slap there; move away
 - **M**: mute / unmute
+- **P** or **Esc** (or the ⏸ sign): pause; "Bay tiếp" resumes
 
 On a phone or touchscreen:
 
 - **Drag on the left side**: a joystick appears under your thumb; push further to fly faster
 - **Tap a dish** (or just beside it): fly to it, land and eat; works while the other thumb is on the joystick
 - **Fly onto a dish and let go of the joystick**: land and eat
+- **⏸**: pause; the menu and the pause board have a "Rung" item to turn vibration off
 
 ## Development
 
@@ -43,8 +45,9 @@ Code layout:
 - `src/audio/`: synthesized sound effects, the street ambience mixed per region (`Ambience.js`) and the Web Audio player
 - `src/regions.js`: the five stops of the trip and the dishes each one serves
 - `src/game/dishes.js`: dish catalogue and score tiers
+- `src/haptics.js`: vibration on a hit and on game over, and the "Rung" setting
 - `src/bestScore.js`: the best total score ("Kỷ lục"), kept in localStorage when it is available
 - `src/copy.js`: every string the player reads
 - `src/levels.js`: level layouts and difficulty
 
-Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`). Pushes to `claude/*` branches run the same deploy, which also publishes a preview of every open pull request from this repo at `https://trinq.github.io/conruoi/pr/<number>/`, so a PR can be tried on a phone before it is merged; a closed PR's preview goes away with the next deploy. The spec is in `SPEC.md`, tickets are in `.scratch/con-ruoi-game/issues/`.
+Pushing to `main` builds and deploys to GitHub Pages (`.github/workflows/deploy.yml`). Pushes to `claude/*` branches run the same deploy, which also publishes a preview of every open pull request from this repo at `https://trinq.github.io/conruoi/pr/<number>/`, so a PR can be tried on a phone before it is merged; a closed PR's preview goes away with the next deploy. Opening a PR re-runs the deploy (`.github/workflows/preview-on-open.yml`), so its preview is there from the start. The spec is in `SPEC.md`, tickets are in `.scratch/con-ruoi-game/issues/`.
