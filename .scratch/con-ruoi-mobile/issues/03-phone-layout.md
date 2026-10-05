@@ -8,7 +8,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] HUD and boards stay inside the safe area
-- [ ] Every board fits the phone viewport and 740 × 360 without scrolling; buttons are at least 44 × 44 CSS px
-- [ ] Portrait shows the rotate hint; turning back to landscape removes it
-- [ ] e2e (phone project): each board's bounding box lies inside the viewport at both sizes; portrait shows the hint
+- [x] HUD and boards stay inside the safe area
+- [x] Every board fits the phone viewport and 740 × 360 without scrolling; buttons are at least 44 × 44 CSS px
+- [x] Portrait shows the rotate hint; turning back to landscape removes it
+- [x] e2e (phone project): each board's bounding box lies inside the viewport at both sizes; portrait shows the hint

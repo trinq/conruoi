@@ -24,10 +24,10 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'desktop', testIgnore: /touch\.spec\.js/ },
+    { name: 'desktop', testIgnore: /(touch|phone)\.spec\.js/ },
     {
       name: 'phone',
-      testMatch: /touch\.spec\.js/,
+      testMatch: /(touch|phone)\.spec\.js/,
       use: { viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, hasTouch: true, isMobile: true },
     },
   ],

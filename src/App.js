@@ -47,6 +47,12 @@ export class App {
     const zoom = () => this.stage.setZoom(this.input.touch ? TOUCH_ZOOM : 1);
     this.input.onChange(zoom);
     zoom();
+
+    // Phones play in landscape; held upright, a board asks to turn them.
+    this.portrait = window.matchMedia('(orientation: portrait)');
+    const rotate = () => this.checkOrientation();
+    this.portrait.addEventListener('change', rotate);
+    this.input.onChange(rotate);
     new TouchTaps(canvas, (e) => this.tap(e), { onStick: (id) => this.stick.owns(id) });
     // Mouse (and pen) pick on press, as before; touch picks on a tap.
     canvas.addEventListener('pointerdown', (e) => {
@@ -63,6 +69,7 @@ export class App {
     this.audio.onUnlock(() => this.ui.hideAudioHint());
 
     this.showMenu();
+    this.checkOrientation();
     this.last = performance.now();
     requestAnimationFrame((t) => this.frame(t));
   }
@@ -75,6 +82,10 @@ export class App {
     const r = this.stage.renderer.domElement.getBoundingClientRect();
     const reach = this.input.touch ? { reachPx: TAP_REACH_PX, size: { width: r.width, height: r.height } } : {};
     if (this.round.click(this.stage.pointerNdc(e), this.stage.camera, reach)) this.stick.hold();
+  }
+
+  checkOrientation() {
+    this.ui.setRotateHint(this.input.touch && this.portrait.matches);
   }
 
   // On touch, flying onto a dish and letting go of the joystick lands there.

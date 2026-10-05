@@ -60,4 +60,6 @@ export const COPY = {
   best: 'Kỷ lục',
   bestScore: (n) => `Kỷ lục: ${n}`,
   newBest: 'Kỷ lục mới!',
+  // Shown over the game in a phone browser held upright.
+  rotate: 'Xoay ngang điện thoại nhé!',
 };

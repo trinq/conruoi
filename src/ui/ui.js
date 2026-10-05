@@ -74,7 +74,21 @@ export class UI {
       svg('0 0 120 120', '<path d="M60 12l-8 9h16zM60 108l-8-9h16zM12 60l9-8v16zM108 60l-9-8v16z"/>'),
       this.stickKnob,
     );
-    root.append(this.world, this.hudLayer, this.stick, this.screenLayer, this.muteLabel, this.fadeLayer);
+    this.rotateHint = el(
+      'div',
+      { class: 'rotate', hidden: '' },
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        svg(
+          '0 0 96 96',
+          '<rect x="34" y="14" width="28" height="48" rx="5"/><path d="M44 56h8"/>' +
+            '<path d="M18 70c6 12 20 18 34 16"/><path d="M48 80l6 6-7 4"/>',
+        ),
+        el('h2', {}, COPY.rotate),
+      ),
+    );
+    root.append(this.world, this.hudLayer, this.stick, this.screenLayer, this.muteLabel, this.rotateHint, this.fadeLayer);
     this.bars = new Map();
 
     // Enter always presses the main button of the board on screen, even after
@@ -169,6 +183,11 @@ export class UI {
 
   banner(text) {
     this.world.append(el('div', { class: 'banner' }, text));
+  }
+
+  // A phone held upright gets a board asking to turn it sideways.
+  setRotateHint(show) {
+    this.rotateHint.hidden = !show;
   }
 
   // ----- touch joystick -----
