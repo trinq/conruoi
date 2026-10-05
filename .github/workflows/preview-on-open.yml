@@ -1,0 +1,20 @@
+name: Preview on PR open
+
+# The deploy workflow publishes previews of open PRs, but a branch's first
+# push usually comes before its PR exists. When a PR from this repo opens,
+# re-run the deploy on its branch so /pr/<number>/ appears right away.
+on:
+  pull_request:
+    types: [opened, reopened]
+
+permissions:
+  actions: write
+
+jobs:
+  deploy:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref "${{ github.event.pull_request.head.ref }}"
