@@ -35,6 +35,18 @@ The browser tests run in two Playwright projects: `desktop` plays the whole game
 
 On a machine that already has Chromium, point the tests at it with `CHROMIUM_PATH=/path/to/chromium npm run test:e2e`; otherwise run `npx playwright install chromium` once. Every pull request runs the level check, the build and the browser tests in GitHub Actions (`.github/workflows/ci.yml`).
 
+### Android app
+
+The Android app (`android/`, Capacitor) wraps the same `dist/` build and runs offline, landscape and full screen, with no permissions beyond vibration.
+
+```bash
+npm run android:sync     # build the web app and copy it into android/
+npm run android:assets   # redraw the launcher icons and launch screens from the mascot SVG
+cd android && ./gradlew assembleDebug   # needs JDK 21 and the Android SDK (API 36)
+```
+
+The debug APK lands in `android/app/build/outputs/apk/debug/`. In the app, Back pauses a level, resumes from the pause board, leaves the how-to, goes home from a result board and exits from the home screen; switching away pauses the level; vibration goes through the native haptics plugin and follows the "Rung" setting.
+
 Code layout:
 
 - `src/world/`: renderer, camera and lights (`Stage.js`), scenery (`environment.js`), low-poly model factories (`models.js`)
@@ -45,6 +57,7 @@ Code layout:
 - `src/audio/`: synthesized sound effects, the street ambience mixed per region (`Ambience.js`) and the Web Audio player
 - `src/regions.js`: the five stops of the trip and the dishes each one serves
 - `src/game/dishes.js`: dish catalogue and score tiers
+- `src/native.js`: the Android app's Back button, backgrounding and native haptics (no-ops on the web)
 - `src/haptics.js`: vibration on a hit and on game over, and the "Rung" setting
 - `src/bestScore.js`: the best total score ("Kỷ lục"), kept in localStorage when it is available
 - `src/copy.js`: every string the player reads
