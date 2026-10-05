@@ -60,6 +60,13 @@ export const COPY = {
   best: 'Kỷ lục',
   bestScore: (n) => `Kỷ lục: ${n}`,
   newBest: 'Kỷ lục mới!',
+  // The pause board.
+  pause: {
+    title: 'Tạm nghỉ',
+    button: 'Tạm nghỉ (P)',
+    resume: ['Bay tiếp', '▶'],
+    home: ['Về quán', '⌂'],
+  },
   // Shown over the game in a phone browser held upright.
   rotate: 'Xoay ngang điện thoại nhé!',
 };

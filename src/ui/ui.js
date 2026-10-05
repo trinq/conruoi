@@ -127,7 +127,8 @@ export class UI {
 
   // ----- HUD -----
 
-  showHud(levelIndex, level) {
+  // `onPause` runs when the ⏸ sign is pressed.
+  showHud(levelIndex, level, { onPause } = {}) {
     this.clearWorld();
     this.scoreText = el('span');
     this.scoreFill = el('div');
@@ -144,7 +145,15 @@ export class UI {
           el('div', { class: 'score-bar' }, this.scoreFill),
         ),
         el('div', { class: 'sign level-sign' }, `${COPY.hud.level(levelIndex)} · ${levelName(levelIndex)}`),
-        this.hearts,
+        el(
+          'div',
+          { class: 'hud-right' },
+          this.hearts,
+          this.button('sign-btn pause-btn', svg('0 0 24 24', '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>'), () => onPause?.(), {
+            once: false,
+            label: COPY.pause.button,
+          }),
+        ),
       ),
     );
     this.target = level.targetScore;
@@ -266,7 +275,7 @@ export class UI {
 
   // A button that runs `onClick` once by default, so double clicks during a
   // fade can't start two games.
-  button(cls, content, onClick, { primary = false, once = true } = {}) {
+  button(cls, content, onClick, { primary = false, once = true, label } = {}) {
     let fired = false;
     const attrs = {
       class: cls,
@@ -278,6 +287,10 @@ export class UI {
       },
     };
     if (primary) attrs['data-primary'] = '';
+    if (label) {
+      attrs['aria-label'] = label;
+      attrs.title = label;
+    }
     return el('button', attrs, ...[content].flat());
   }
 
@@ -315,6 +328,23 @@ export class UI {
       el('h1', {}, COPY.title),
       el('p', { class: 'slogan' }, COPY.slogan),
       el('div', { class: 'strip' }, COPY.signStrip),
+    );
+  }
+
+  // The "Tạm nghỉ" board over a paused level.
+  showPause({ onResume, onToggleSound, onHome }) {
+    this.onToggleSound = onToggleSound;
+    this.soundItem = this.soundButton(!this.muted);
+    this.showScreen(
+      'pause',
+      el(
+        'div',
+        { class: 'chalkboard board' },
+        el('h2', {}, COPY.pause.title),
+        this.menuItem(COPY.pause.resume, onResume, { primary: true }),
+        this.soundItem,
+        this.menuItem(COPY.pause.home, onHome),
+      ),
     );
   }
 

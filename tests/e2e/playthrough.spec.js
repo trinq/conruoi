@@ -282,6 +282,24 @@ test('street sounds wait until a key press or click allows audio', async ({ page
   await expectNoErrors(errors);
 });
 
+test('P and Esc pause the level; game time stops until "Bay tiếp"', async ({ page }) => {
+  const errors = await openGame(page);
+  await startGame(page);
+  const time = () => page.evaluate(() => window.__app.round.time);
+  for (const key of ['p', 'Escape']) {
+    await page.keyboard.press(key);
+    await waitForMode(page, 'paused');
+    await expect(board(page)).toContainText(COPY.pause.title);
+    const t0 = await time();
+    await page.waitForTimeout(1500);
+    expect(await time()).toBe(t0);
+    await board(page).getByRole('button', { name: COPY.pause.resume[0] }).click();
+    await waitForMode(page, 'play');
+    await expect.poll(time, SLOW).toBeGreaterThan(t0);
+  }
+  await expectNoErrors(errors);
+});
+
 test('movement works with a Vietnamese input method switched on', async ({ page }) => {
   const errors = await openGame(page);
   await startGame(page);

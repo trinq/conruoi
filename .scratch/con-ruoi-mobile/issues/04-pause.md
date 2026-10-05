@@ -8,7 +8,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] ⏸, P and Esc pause; "Bay tiếp" resumes; "Về quán" goes home
-- [ ] Switching tab/app or locking the screen pauses a level
-- [ ] While paused, game time, diners' strikes and sounds are frozen
-- [ ] e2e: ⏸ and a hidden `visibilitychange` show "Tạm nghỉ"; a strike started before pausing does not land while paused; P/Esc pause on desktop; resume works
+- [x] ⏸, P and Esc pause; "Bay tiếp" resumes; "Về quán" goes home
+- [x] Switching tab/app or locking the screen pauses a level
+- [x] While paused, game time, diners' strikes and sounds are frozen
+- [x] e2e: ⏸ and a hidden `visibilitychange` show "Tạm nghỉ"; a strike started before pausing does not land while paused; P/Esc pause on desktop; resume works

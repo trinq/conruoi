@@ -582,6 +582,33 @@ body {
   background-image: none;
 }
 
+.hud-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+/* The ⏸ sign: a small square plaque, the only HUD part that takes taps. */
+.pause-btn {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+}
+
+.pause-btn svg {
+  width: 22px;
+  height: 22px;
+  fill: var(--sign-yellow);
+  filter: drop-shadow(0 2px 0 var(--sign-red-dark));
+}
+
+.pause .board {
+  width: min(400px, 100%);
+  text-align: left;
+}
+
 .hearts {
   display: flex;
   gap: 4px;

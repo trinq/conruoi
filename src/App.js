@@ -65,6 +65,11 @@ export class App {
     });
     window.addEventListener('keydown', (e) => {
       if (e.code === 'KeyM' && !e.repeat) this.toggleSound();
+      if ((e.code === 'KeyP' || e.code === 'Escape') && !e.repeat) this.pause();
+    });
+    // Switching app or tab, locking the screen or a call pauses a level.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.pause();
     });
     this.audio.onUnlock(() => this.ui.hideAudioHint());
 
@@ -85,7 +90,35 @@ export class App {
   }
 
   checkOrientation() {
-    this.ui.setRotateHint(this.input.touch && this.portrait.matches);
+    const upright = this.input.touch && this.portrait.matches;
+    this.ui.setRotateHint(upright);
+    if (upright) this.pause();
+  }
+
+  // Freezes a level: game time stops, sound is held, and the "Tạm nghỉ"
+  // board shows. Only "Bay tiếp" resumes.
+  pause() {
+    if (this.mode !== 'play') return;
+    this.mode = 'paused';
+    this.stick.release();
+    this.stage.shakeLeft = 0;
+    this.audio.hold(true);
+    this.ui.showPause({
+      onResume: () => this.resume(),
+      onToggleSound: () => this.toggleSound(),
+      onHome: () =>
+        this.ui.fade(() => {
+          this.audio.hold(false);
+          this.showMenu();
+        }),
+    });
+  }
+
+  resume() {
+    if (this.mode !== 'paused') return;
+    this.mode = 'play';
+    this.audio.hold(false);
+    this.ui.hideScreen();
   }
 
   // On touch, flying onto a dish and letting go of the joystick lands there.
@@ -132,7 +165,7 @@ export class App {
     this.totalScore = totalScore;
     this.mode = 'play';
     this.ui.hideScreen();
-    this.ui.showHud(levelIndex, this.round.level);
+    this.ui.showHud(levelIndex, this.round.level, { onPause: () => this.pause() });
     this.ui.setScore(0);
     this.ui.setLives(lives);
     this.ui.showIntro(levelIndex);
@@ -226,6 +259,12 @@ export class App {
   frame(now) {
     const dt = Math.min(MAX_FRAME_MS, now - this.last);
     this.last = now;
+    // While paused only the frozen scene is drawn.
+    if (this.mode === 'paused') {
+      this.stage.render(0);
+      requestAnimationFrame((t) => this.frame(t));
+      return;
+    }
     this.env.update(now, dt / 1000);
     if (this.mode === 'play') {
       this.round.update(dt, this.moveInput());

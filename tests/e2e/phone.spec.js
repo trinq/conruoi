@@ -2,7 +2,7 @@
 // playwright.config.js): boards fit the screen, the rotate hint.
 import { test, expect } from '@playwright/test';
 import { COPY } from '../../src/copy.js';
-import { openGame, waitForMode, expectNoErrors } from './game.js';
+import { openGame, waitForMode, tapToStart, fullHearts, board, expectNoErrors, SLOW } from './game.js';
 
 // Every board the player can meet, shown through the app the way the game
 // flow shows them.
@@ -12,6 +12,7 @@ const BOARDS = {
   map: (app) => app.showLevelComplete({ levelIndex: 1, levelScore: 120, totalScore: 200, lives: 2 }),
   victory: (app) => app.showLevelComplete({ levelIndex: 4, levelScore: 380, totalScore: 900, lives: 1 }),
   gameOver: (app) => app.showGameOver({ levelIndex: 2, totalScore: 300 }),
+  pause: (app) => app.ui.showPause({}),
 };
 
 // The board's box (and the sign beside it) lies inside the viewport, the
@@ -56,5 +57,67 @@ test('holding the phone upright shows the rotate hint; turning it back removes i
   await page.setViewportSize({ width: 915, height: 412 });
   await expect(hint).toBeHidden();
   await waitForMode(page, 'menu');
+  await expectNoErrors(errors);
+});
+
+const pauseBoard = (page) => board(page).filter({ hasText: COPY.pause.title });
+const gameTime = (page) => page.evaluate(() => window.__app.round.time);
+
+test('the pause sign freezes a strike in mid-air; "Bay tiếp" lets it land', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+
+  await page.getByRole('button', { name: COPY.pause.button }).tap();
+  await expect(pauseBoard(page)).toBeVisible();
+  await pauseBoard(page).getByRole('button', { name: COPY.pause.resume[0] }).tap();
+  await waitForMode(page, 'play');
+
+  // A diner winds up over the fly, and the ⏸ sign is pressed at once.
+  await page.evaluate(() => {
+    const r = window.__app.round;
+    const npc = r.npcs[0];
+    r.fly.invincibleUntil = 0;
+    r.fly.x = npc.x + 0.3;
+    r.fly.z = npc.z + 1.2;
+    npc.startWindup(r.fly);
+    document.querySelector('.pause-btn').click();
+  });
+  await expect(pauseBoard(page)).toBeVisible();
+  const t0 = await gameTime(page);
+  await page.waitForTimeout(3000);
+  expect(await gameTime(page)).toBe(t0);
+  expect(await fullHearts(page)).toBe(3);
+  expect(await page.evaluate(() => window.__app.round.npcs[0].state)).toBe('windup');
+
+  await pauseBoard(page).getByRole('button', { name: COPY.pause.resume[0] }).tap();
+  await expect.poll(() => fullHearts(page), SLOW).toBe(2);
+  await expectNoErrors(errors);
+});
+
+test('leaving the app pauses the level, and "Về quán" goes home', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(pauseBoard(page)).toBeVisible();
+  await pauseBoard(page).getByRole('button', { name: COPY.pause.home[0] }).tap();
+  await waitForMode(page, 'menu');
+  await expect(board(page)).toContainText(COPY.menuTitle);
+  await expectNoErrors(errors);
+});
+
+test('turning the phone upright during a level pauses it', async ({ page }) => {
+  const errors = await openGame(page);
+  await tapToStart(page, COPY.menu.play[0]);
+  await page.setViewportSize({ width: 412, height: 915 });
+  await expect(page.locator('.rotate')).toBeVisible();
+  await waitForMode(page, 'paused');
+  await page.setViewportSize({ width: 915, height: 412 });
+  await expect(page.locator('.rotate')).toBeHidden();
+  await expect(pauseBoard(page)).toBeVisible();
+  await pauseBoard(page).getByRole('button', { name: COPY.pause.resume[0] }).tap();
+  await waitForMode(page, 'play');
   await expectNoErrors(errors);
 });

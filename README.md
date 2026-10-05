@@ -12,6 +12,7 @@ Built with [three.js](https://threejs.org). Every model (trees, stall, tables, d
 - **Click a dish**: fly to it, land and eat
 - **Red zone on the table**: a hand is about to slap there; move away
 - **M**: mute / unmute
+- **P** or **Esc** (or the ⏸ sign): pause; "Bay tiếp" resumes
 
 On a phone or touchscreen:
 

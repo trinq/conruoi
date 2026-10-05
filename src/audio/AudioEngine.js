@@ -33,7 +33,7 @@ export class AudioEngine {
     idle(next);
 
     const unlock = () => {
-      if (this.ctx.state !== 'running') this.ctx.resume();
+      if (!this.held && this.ctx.state !== 'running') this.ctx.resume();
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
@@ -53,6 +53,15 @@ export class AudioEngine {
       this.buffers.set(name, buffer);
     }
     return this.buffers.get(name);
+  }
+
+  // Pausing holds the context suspended, so loops fall silent where they
+  // are and nothing new plays until it is released.
+  hold(held) {
+    this.held = held;
+    if (!this.ctx) return;
+    if (held) this.ctx.suspend();
+    else this.ctx.resume();
   }
 
   get locked() {
