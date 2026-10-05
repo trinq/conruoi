@@ -51,6 +51,7 @@ const HOWTO_ICONS = {
         '<path d="M22 12c0-4 4-4 4-8M32 12c0-4 4-4 4-8"/><path d="M50 30l8 12-5-1-2 5z"/>',
     ),
   zone: () => svg('0 0 64 48', '<ellipse cx="32" cy="34" rx="26" ry="10"/><path d="M32 4v18m-6-6 6 6 6-6"/>', 'zone'),
+  stick: () => svg('0 0 64 48', '<circle cx="32" cy="24" r="19"/><circle cx="40" cy="20" r="8"/><path d="M12 24h-6m52 0h-6M32 4v-3"/>'),
   'key-m': () => svg('0 0 64 48', '<rect x="18" y="8" width="28" height="28" rx="4"/><path d="M25 29V16l7 8 7-8v13"/>'),
 };
 
@@ -312,6 +313,16 @@ export class UI {
     return this.menuItem(COPY.menu.sound(on), () => this.onToggleSound?.(), { once: false });
   }
 
+  // "Rung: Bật/Tắt", only where vibration works.
+  vibrateButton() {
+    if (!this.haptics?.available) return null;
+    const item = this.menuItem(COPY.menu.vibrate(this.haptics.on()), () => {
+      this.haptics.set(!this.haptics.on());
+      item.replaceWith(this.vibrateButton());
+    }, { once: false });
+    return item;
+  }
+
   qualityButton() {
     const item = this.menuItem(COPY.menu.quality(this.quality === 'high'), () => {
       this.quality = this.quality === 'high' ? 'low' : 'high';
@@ -343,17 +354,18 @@ export class UI {
         el('h2', {}, COPY.pause.title),
         this.menuItem(COPY.pause.resume, onResume, { primary: true }),
         this.soundItem,
+        this.vibrateButton(),
         this.menuItem(COPY.pause.home, onHome),
       ),
     );
   }
 
-  showMenu({ onPlay, onToggleSound, onQuality, audioLocked, best }) {
-    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked, best };
+  showMenu({ onPlay, onToggleSound, onQuality, audioLocked, best, touch = () => false }) {
+    this.menuOptions = { onPlay, onToggleSound, onQuality, audioLocked, best, touch };
     this.onToggleSound = onToggleSound;
     this.onQuality = onQuality;
     this.soundItem = this.soundButton(!this.muted);
-    const hint = audioLocked() ? el('p', { class: 'hint' }, COPY.audioHint) : null;
+    const hint = audioLocked() ? el('p', { class: 'hint' }, touch() ? COPY.audioHintTouch : COPY.audioHint) : null;
     this.showScreen(
       'home',
       this.titleSign(),
@@ -364,6 +376,7 @@ export class UI {
         this.menuItem(COPY.menu.play, onPlay, { primary: true }),
         this.menuItem(COPY.menu.howTo, () => this.showHowTo(), { once: false }),
         this.soundItem,
+        this.vibrateButton(),
         this.qualityButton(),
         hint,
         el('div', { class: 'record' }, el('span', {}, `${COPY.best}:`), el('b', {}, String(best))),
@@ -382,7 +395,7 @@ export class UI {
         el(
           'div',
           { class: 'howto' },
-          ...COPY.howTo.flatMap(([icon, title, text]) => [
+          ...(this.menuOptions.touch() ? COPY.howToTouch : COPY.howTo).flatMap(([icon, title, text]) => [
             HOWTO_ICONS[icon](),
             el('div', {}, el('b', {}, title), el('span', {}, text)),
           ]),
@@ -391,6 +404,7 @@ export class UI {
           'div',
           { class: 'actions' },
           this.button('chalk-link', COPY.back, () => this.showMenu(this.menuOptions), { primary: true }),
+          el('a', { class: 'chalk-link', href: COPY.reportUrl, target: '_blank', rel: 'noopener' }, COPY.report),
         ),
       ),
     );

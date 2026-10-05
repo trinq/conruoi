@@ -121,3 +121,60 @@ test('turning the phone upright during a level pauses it', async ({ page }) => {
   await waitForMode(page, 'play');
   await expectNoErrors(errors);
 });
+
+// Records navigator.vibrate calls instead of buzzing.
+async function recordVibrations(page) {
+  await page.addInitScript(() => {
+    window.__vibrations = [];
+    navigator.vibrate = (pattern) => {
+      window.__vibrations.push(pattern);
+      return true;
+    };
+  });
+}
+const vibrations = (page) => page.evaluate(() => window.__vibrations.length);
+const strike = (page) =>
+  page.evaluate(() => {
+    const r = window.__app.round;
+    r.fly.invincibleUntil = 0;
+    r.onSlap(r.fly.x, r.fly.z);
+  });
+
+test('the how-to board shows touch instructions and a Báo lỗi link', async ({ page }) => {
+  const errors = await openGame(page);
+  await page.getByRole('button', { name: COPY.menu.howTo[0] }).tap();
+  for (const [, title, text] of COPY.howToTouch) {
+    await expect(board(page)).toContainText(title);
+    await expect(board(page)).toContainText(text);
+  }
+  await expect(board(page)).not.toContainText(COPY.howTo[3][1]);
+  const report = board(page).getByRole('link', { name: COPY.report });
+  await expect(report).toHaveAttribute('href', COPY.reportUrl);
+  await expectNoErrors(errors);
+});
+
+test('a hit vibrates while Rung is on; switched off it stays still, also after a reload', async ({ page }) => {
+  await recordVibrations(page);
+  const errors = await openGame(page);
+  const rung = () => board(page).locator('.chalk-item', { hasText: COPY.menu.vibrate(true)[0] });
+  await expect(rung()).toContainText(COPY.menu.vibrate(true)[1]);
+
+  await tapToStart(page, COPY.menu.play[0]);
+  await strike(page);
+  await expect.poll(() => vibrations(page)).toBe(1);
+
+  // Off from the pause board.
+  await page.getByRole('button', { name: COPY.pause.button }).tap();
+  await rung().tap();
+  await expect(rung()).toContainText(COPY.menu.vibrate(false)[1]);
+  await board(page).getByRole('button', { name: COPY.pause.resume[0] }).tap();
+  await waitForMode(page, 'play');
+  await strike(page);
+  await expect.poll(() => fullHearts(page)).toBe(1);
+  expect(await vibrations(page)).toBe(1);
+
+  await page.reload();
+  await page.waitForFunction(() => window.__app);
+  await expect(rung()).toContainText(COPY.menu.vibrate(false)[1]);
+  await expectNoErrors(errors);
+});

@@ -15,6 +15,7 @@ import { LEVELS } from './levels.js';
 import { MAX_LIVES, newGame } from './gameState.js';
 import { COPY } from './copy.js';
 import { readBest, saveBest } from './bestScore.js';
+import { canVibrate, vibrateOn, setVibrate, vibrateHit, vibrateGameOver } from './haptics.js';
 
 const END_DELAY_MS = 900; // let the last bite / final hit play out before fading
 const MAX_FRAME_MS = 50;
@@ -34,6 +35,7 @@ export class App {
     this.keys = new MoveKeys();
     this.input = new InputMode();
     this.ui = new UI(document.getElementById('ui'), this.stage);
+    this.ui.haptics = { available: canVibrate, on: vibrateOn, set: setVibrate };
     this.mode = 'menu';
     this.round = null;
 
@@ -152,6 +154,7 @@ export class App {
       onQuality: (level) => this.stage.setQuality(level),
       audioLocked: () => this.audio.locked,
       best: readBest(),
+      touch: () => this.input.touch,
     });
   }
 
@@ -191,6 +194,7 @@ export class App {
       })
       .on('hit', () => {
         this.gameAudio.hurt();
+        vibrateHit();
         const fly = round.fly;
         this.ui.hitReaction(new THREE.Vector3(fly.x, fly.altitude + 0.5, fly.z));
       })
@@ -198,7 +202,10 @@ export class App {
       .on('won', () =>
         this.endRound(COPY.targetReached, () => this.showLevelComplete({ levelIndex, levelScore: round.score, totalScore: this.totalScore, lives: round.lives })),
       )
-      .on('lost', () => this.endRound(COPY.outOfLives, () => this.showGameOver({ levelIndex, totalScore: this.totalScore })));
+      .on('lost', () => {
+        vibrateGameOver();
+        this.endRound(COPY.outOfLives, () => this.showGameOver({ levelIndex, totalScore: this.totalScore }));
+      });
   }
 
   endRound(message, next) {
