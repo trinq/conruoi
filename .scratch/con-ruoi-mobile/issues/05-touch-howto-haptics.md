@@ -12,4 +12,4 @@
 - [x] Vibration on hit and game over; the Rung setting turns it off and is remembered after reload; hidden when unsupported
 - [x] "Báo lỗi" opens the issue form
 - [x] e2e (phone project): touch how-to text; Rung item toggles and persists; vibrate is called on a hit when on and not when off
-- [ ] Maintainer tried PR B on a real phone and said "ok" before merge
+- [x] Maintainer tried PR B on a real phone and said "ok" before merge
