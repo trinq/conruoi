@@ -12,4 +12,4 @@
 - [x] Flying with one finger while tapping a dish with another still lands on the dish
 - [x] Mouse picking unchanged
 - [x] e2e (phone project): tap on and beside a dish raises the HUD "No" by its points; two-finger fly-and-tap works
-- [ ] Maintainer tried PR A on a real phone and said "ok" before merge
+- [x] Maintainer tried PR A on a real phone and said "ok" before merge
